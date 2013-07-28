@@ -1,5 +1,15 @@
 PROJECT(VTKNETCDF)
 
+set(vtknetcdf_LIBRARIES vtkNetCDF vtkNetCDF_cxx)
+set(vtknetcdf_INCLUDE_DIRS
+  ${vtknetcdf_SOURCE_DIR}/vtknetcdf/include
+  ${vtknetcdf_BINARY_DIR}/vtknetcdf
+  )
+
+# TODO I don't think we need these
+#vtk_module_export_info()
+#set(vtknetcdf_THIRD_PARTY 1)
+
 INCLUDE_REGULAR_EXPRESSION(".*")
 
 SET(VERSION "4.1.2")
