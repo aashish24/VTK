@@ -1,5 +1,6 @@
-if (Module_vtkVolumeOpenGL2)
-  set(VTK_RENDERING_VOLUME_BACKEND "vtkRenderingVolumeOpenGL;vtkVolumeOpenGL2")
+if (Module_vtkRenderingVolumeOpenGLNEW)
+  set(VTK_RENDERING_VOLUME_BACKEND
+    "vtkRenderingVolumeOpenGL;vtkRenderingVolumeOpenGLNew")
 else()
   set(VTK_RENDERING_VOLUME_BACKEND "vtkRenderingVolumeOpenGL")
 endif()
