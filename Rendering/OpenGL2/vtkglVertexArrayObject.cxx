@@ -14,7 +14,7 @@
 
 #include "vtkglVertexArrayObject.h"
 #include "vtkglBufferObject.h"
-#include "vtkglShaderProgram.h"
+#include "vtkShaderProgram.h"
 #include "vtk_glew.h"
 
 #include <map>
@@ -48,7 +48,7 @@ inline GLenum convertTypeToGL(int type)
 #ifdef GL_DOUBLE
       return GL_DOUBLE;
 #else
-      assert("Attempt to use GL_DOUBLE when not supported" && 0);
+      vtkGenericWarningMacro(<< "Attempt to use GL_DOUBLE when not supported");
       return 0;
 #endif
     default:
@@ -201,15 +201,16 @@ void VertexArrayObject::ReleaseGraphicsResources()
   this->d->ReleaseGraphicsResources();
 }
 
-bool VertexArrayObject::AddAttributeArray(ShaderProgram &program,
+bool VertexArrayObject::AddAttributeArrayWithDivisor(vtkShaderProgram *program,
                                           BufferObject &buffer,
                                           const std::string &name,
                                           int offset, size_t stride,
                                           int elementType, int elementTupleSize,
-                                          bool normalize)
+                                          bool normalize,
+                                          int divisor)
 {
   // Check the program is bound, and the buffer is valid.
-  if (!program.isBound() || buffer.GetHandle() == 0 ||
+  if (!program->isBound() || buffer.GetHandle() == 0 ||
       buffer.GetType() != BufferObject::ArrayBuffer)
     {
     return false;
@@ -218,10 +219,10 @@ bool VertexArrayObject::AddAttributeArray(ShaderProgram &program,
   // Perform initalization if necessary, ensure program matches VAOs.
   if (this->d->handleProgram == 0)
     {
-    this->d->handleProgram = static_cast<GLuint>(program.GetHandle());
+    this->d->handleProgram = static_cast<GLuint>(program->GetHandle());
     }
   if (!this->d->IsReady() ||
-      this->d->handleProgram != static_cast<GLuint>(program.GetHandle()))
+      this->d->handleProgram != static_cast<GLuint>(program->GetHandle()))
     {
     return false;
     }
@@ -247,6 +248,14 @@ bool VertexArrayObject::AddAttributeArray(ShaderProgram &program,
                         attribs.normalize, attribs.stride,
                         BUFFER_OFFSET(attribs.offset));
 
+
+  if (divisor > 0)
+    {
+#if GL_ES_VERSION_2_0 != 1
+    glVertexAttribDivisor(attribs.index, 1);
+#endif
+    }
+
   // If vertex array objects are not supported then build up our list.
   if (!this->d->supported)
     {
@@ -269,9 +278,49 @@ bool VertexArrayObject::AddAttributeArray(ShaderProgram &program,
       }
     else
       {
+      // this looks wrong, a single handle can have multiple attribs
       std::vector<VertexAttributes> attribsVector;
       attribsVector.push_back(attribs);
       this->d->attributes[handleBuffer] = attribsVector;
+      }
+    }
+
+  return true;
+}
+
+bool VertexArrayObject::AddAttributeMatrixWithDivisor(vtkShaderProgram *program,
+                                          BufferObject &buffer,
+                                          const std::string &name,
+                                          int offset, size_t stride,
+                                          int elementType, int elementTupleSize,
+                                          bool normalize,
+                                          int divisor)
+{
+  // bind the first row of values
+  bool result =
+    this->AddAttributeArrayWithDivisor(program, buffer, name,
+      offset, stride, elementType, elementTupleSize, normalize, divisor);
+
+  if (!result)
+    {
+    return result;
+    }
+
+  const GLchar *namePtr = static_cast<const GLchar *>(name.c_str());
+  VertexAttributes attribs;
+  attribs.index = glGetAttribLocation(this->d->handleProgram, namePtr);
+
+  for (int i = 1; i < elementTupleSize; i++)
+    {
+    glEnableVertexAttribArray(attribs.index+i);
+    glVertexAttribPointer(attribs.index + i, elementTupleSize, convertTypeToGL(elementType),
+                          normalize, static_cast<GLsizei>(stride),
+                          BUFFER_OFFSET(offset + stride*i/elementTupleSize));
+    if (divisor > 0)
+      {
+#if GL_ES_VERSION_2_0 != 1
+      glVertexAttribDivisor(attribs.index+i, 1);
+#endif
       }
     }
 

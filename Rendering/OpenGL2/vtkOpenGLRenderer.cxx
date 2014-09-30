@@ -233,23 +233,43 @@ vtkTextureObject *vtkOpenGLRendererCreateDepthPeelingTextureObject(
 // get the texture units for depth peeling
 int vtkOpenGLRenderer::GetOpaqueRGBATextureUnit()
 {
-  return this->OpaqueRGBATexture->GetTextureUnit();
+  if (this->OpaqueRGBATexture)
+    {
+    return this->OpaqueRGBATexture->GetTextureUnit();
+    }
+  return -1;
 }
 int vtkOpenGLRenderer::GetOpaqueZTextureUnit()
 {
-  return this->OpaqueZTexture->GetTextureUnit();
+  if (this->OpaqueZTexture)
+    {
+    return this->OpaqueZTexture->GetTextureUnit();
+    }
+  return -1;
 }
 int vtkOpenGLRenderer::GetTranslucentRGBATextureUnit()
 {
-  return this->TranslucentRGBATexture->GetTextureUnit();
+  if (this->TranslucentRGBATexture)
+    {
+    return this->TranslucentRGBATexture->GetTextureUnit();
+    }
+  return -1;
 }
 int vtkOpenGLRenderer::GetTranslucentZTextureUnit()
 {
-  return this->TranslucentZTexture->GetTextureUnit();
+  if (this->TranslucentZTexture)
+    {
+    return this->TranslucentZTexture->GetTextureUnit();
+    }
+  return -1;
 }
 int vtkOpenGLRenderer::GetCurrentRGBATextureUnit()
 {
-  return this->CurrentRGBATexture->GetTextureUnit();
+  if (this->CurrentRGBATexture)
+    {
+    return this->CurrentRGBATexture->GetTextureUnit();
+    }
+  return -1;
 }
 
 // ----------------------------------------------------------------------------
@@ -369,7 +389,7 @@ void vtkOpenGLRenderer::DeviceRenderTranslucentPolygonalGeometry()
       context, this->ViewportWidth, this->ViewportHeight, 1, true, &((*this->DepthZData)[0]));
 
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-//    glClearColor(0.0,0.0,0.0,0.0); // always clear to black
+ //  glClearColor(0.0,0.0,0.0,0.0); // always clear to black
    // glClearDepth(static_cast<GLclampf>(1.0));
 #ifdef GL_MULTISAMPLE
     glDisable(GL_MULTISAMPLE);
@@ -456,7 +476,7 @@ void vtkOpenGLRenderer::DeviceRenderTranslucentPolygonalGeometry()
     this->TranslucentZTexture = 0;
 
     // blend in OpaqueRGBA
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     this->LastRenderingUsedDepthPeeling = 3;
     this->OpaqueRGBATexture->Activate();
     this->DepthPeelingActor->RenderOverlay(this);
@@ -479,9 +499,9 @@ void vtkOpenGLRenderer::DeviceRenderTranslucentPolygonalGeometry()
 // return false otherwise returns true. Also if layer==0 and no prop have
 // been rendered (there is no translucent geometry), it returns false.
 // \pre positive_layer: layer>=0
-int vtkOpenGLRenderer::RenderPeel(int layer)
+int vtkOpenGLRenderer::RenderPeel(int vtkNotUsed(layer))
 {
-  assert("pre: positive_layer" && layer>=0);
+  // assert("pre: positive_layer" && layer>=0);
   return 0;
 }
 

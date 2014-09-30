@@ -20,7 +20,7 @@
 
 #include "vtkRenderingOpenGL2Module.h" // For export macro
 #include "vtkPolyDataMapper.h"
-#include "vtkglVBOHelper.h"
+#include "vtkglVBOHelper.h" // used for ivars
 
 class vtkOpenGLTexture;
 
@@ -91,6 +91,31 @@ protected:
   // Description:
   // Build the shader source code, called by UpdateShader
   virtual void BuildShader(std::string &VertexCode,
+                           std::string &fragmentCode,
+                           std::string &geometryCode,
+                           int lightComplexity,
+                           vtkRenderer *ren, vtkActor *act);
+
+  // Description:
+  // Create the basic shaders before replacement
+  virtual void GetShaderTemplate(std::string &VertexCode,
+                           std::string &fragmentCode,
+                           std::string &geometryCode,
+                           int lightComplexity,
+                           vtkRenderer *ren, vtkActor *act);
+
+  // Description:
+  // Perform string replacments on the shader templates
+  virtual void ReplaceShaderValues(std::string &VertexCode,
+                           std::string &fragmentCode,
+                           std::string &geometryCode,
+                           int lightComplexity,
+                           vtkRenderer *ren, vtkActor *act);
+
+  // Description:
+  // Perform string replacments on the shader templates, called from
+  // ReplaceShaderValues
+  virtual void ReplaceShaderColorMaterialValues(std::string &VertexCode,
                            std::string &fragmentCode,
                            std::string &geometryCode,
                            int lightComplexity,

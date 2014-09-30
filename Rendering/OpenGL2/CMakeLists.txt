@@ -10,38 +10,7 @@ set(${vtk-module}_SYSTEM_INCLUDE_DIRS
   ${OPENGL_INCLUDE_DIR})
 
 include(vtkObjectFactory)
-
-# Copy of what is in vtkRenderingOpenGL for logic on X, Carbon, Cocoa, etc.
-set(VTK_USE_X_DEFAULT OFF)
-
-if(APPLE)
-  option(VTK_USE_COCOA "Use Cocoa for VTK render windows" ON)
-  option(VTK_USE_CARBON "Use Carbon for VTK render windows (deprecated)" OFF)
-  mark_as_advanced(VTK_USE_COCOA VTK_USE_CARBON)
-  if(VTK_USE_COCOA AND VTK_USE_CARBON)
-    message(FATAL_ERROR "You can't enable Carbon and Cocoa - you must choose one.")
-  endif()
-elseif(UNIX AND NOT ANDROID)
-  set(VTK_USE_X_DEFAULT ON)
-endif()
-
-option(VTK_USE_X "Use X for VTK render windows" ${VTK_USE_X_DEFAULT})
-mark_as_advanced(VTK_USE_X)
-
-# OSMesa logic for offscreen mesa rendering.
-option(VTK_OPENGL_HAS_OSMESA
-  "The OpenGL library being used supports off screen Mesa calls" OFF)
-option(VTK_USE_OFFSCREEN "Use off screen calls by default" OFF)
-unset(VTK_CAN_DO_OFFSCREEN)
-if(VTK_OPENGL_HAS_OSMESA OR WIN32)
-  set(VTK_CAN_DO_OFFSCREEN 1)
-endif()
-mark_as_advanced(VTK_OPENGL_HAS_OSMESA VTK_USE_OFFSCREEN)
-if(VTK_USE_X OR VTK_USE_CARBON OR VTK_USE_COCOA OR WIN32 OR ANDROID)
-  set(VTK_USE_OSMESA FALSE)
-else()
-  set(VTK_USE_OSMESA TRUE)
-endif()
+include(vtkOpenGLMesaLogic)
 
 # The TDx support has not been moved, this header is here to define nothing,
 # and so allow classes in other modules to safely include it and keep going.
@@ -51,8 +20,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vtkTDxConfigure.h.in
 set(Module_SRCS
   vtkglBufferObject.cxx
   vtkglVBOHelper.cxx
-  vtkglShader.cxx
-  vtkglShaderProgram.cxx
+  vtkShader.cxx
+  vtkShaderProgram.cxx
   vtkglVertexArrayObject.cxx
   vtkOpenGLActor.cxx
   vtkOpenGLCamera.cxx
@@ -69,14 +38,14 @@ set(Module_SRCS
   vtkOpenGLRenderer.cxx
   vtkOpenGLShaderCache.cxx
   vtkOpenGLTexture.cxx
-  vtkOpenGLTextureUnitManager.cxx
   vtkRenderPass.cxx
   vtkRenderState.cxx
   vtkTextureObject.cxx
+  vtkTextureUnitManager.cxx
   ${CMAKE_CURRENT_BINARY_DIR}/${vtk-module}ObjectFactory.cxx
   )
 
-if (NOT ANDROID)
+if (NOT ANDROID AND NOT APPLE_IOS)
   set(Module_SRCS ${Module_SRCS}
   vtkPixelBufferObject.cxx
   vtkFrameBufferObject.cxx
@@ -94,31 +63,19 @@ set(${vtk-module}_HDRS
 set_source_files_properties(
   vtkglBufferObject
   vtkglVBOHelper
-  vtkglShader
-  vtkglShaderProgram
   vtkglVertexArrayObject
   vtkFrameBufferObject
-  vtkOpenGLActor
-  vtkOpenGLCamera
-  vtkOpenGLImageMapper
-  vtkOpenGLImageSliceMapper
   vtkOpenGLGlyph3DHelper
   vtkOpenGLGlyph3DMapper
   vtkOpenGLHardwareSelector
-  vtkOpenGLLight
-  vtkOpenGLPolyDataMapper
-  vtkOpenGLPolyDataMapper2D
-  vtkOpenGLProperty
-  vtkOpenGLRenderer
   vtkOpenGLShaderCache
-  vtkOpenGLTexture
-  vtkOpenGLTextureUnitManager
   vtkPixelBufferObject
   vtkRenderbuffer
   vtkRenderPass
   vtkRenderState
   vtkTextureObject
-  ${vtk-module}ObjectFactory
+  vtkTextureUnitManager
+  ${CMAKE_CURRENT_BINARY_DIR}/${vtk-module}ObjectFactory.cxx
   WRAP_EXCLUDE)
 
 set_source_files_properties(
@@ -139,6 +96,8 @@ set(shader_files
   glsl/vtkglPolyDataFSHeadlight.glsl
   glsl/vtkglPolyDataFSLightKit.glsl
   glsl/vtkglPolyDataFSPositionalLights.glsl
+
+  glsl/vtkglGlyph3DVSFragmentLit.glsl
   )
 
 unset(shader_h_files)
@@ -180,11 +139,6 @@ if(VTK_USE_X)
     WRAP_EXCLUDE)
 endif()
 
-set_source_files_properties(
-  vtkRenderingOpenGL2ObjectFactory
-  WRAP_EXCLUDE
-  )
-
 # setup factory overrides
 set(opengl_overrides
   Actor
@@ -200,6 +154,12 @@ set(opengl_overrides
   Renderer
   Texture
   )
+
+# Now to see about the GPU info list.
+list(APPEND vtk_module_overrides "vtkGPUInfoList")
+list(APPEND Module_SRCS "vtkDummyGPUInfoList.cxx")
+set(vtk_module_vtkGPUInfoList_override "vtkDummyGPUInfoList")
+
 foreach(_override ${opengl_overrides})
   vtk_add_override(vtk${_override} vtkOpenGL${_override})
 endforeach()
@@ -228,8 +188,8 @@ elseif(VTK_USE_OSMESA)
   endif()
   include_directories(${OSMESA_INCLUDE_DIR})
   list(APPEND vtk_module_overrides "vtkRenderWindow")
-  set(vtk_module_vtkRenderWindow_override "vtkOSOpenGL2RenderWindow")
-  list(APPEND Module_SRCS vtkOSOpenGL2RenderWindow.cxx)
+  set(vtk_module_vtkRenderWindow_override "vtkOSOpenGLRenderWindow")
+  list(APPEND Module_SRCS vtkOSOpenGLRenderWindow.cxx)
 elseif(WIN32)
   # Add some custom overrides
   list(APPEND vtk_module_overrides "vtkRenderWindowInteractor")
@@ -286,7 +246,26 @@ elseif(ANDROID)
     "${ANDROID_NDK}/platforms/android-${ANDROID_NATIVE_API_LEVEL}/arch-${ANDROID_ARCH_NAME}/usr/include"
     "${ANDROID_NDK}/sources/android/native_app_glue"
     )
-endif()
+elseif(APPLE_IOS)
+  # Add some custom overrides
+  list(APPEND vtk_module_overrides "vtkRenderWindowInteractor")
+  set(vtk_module_vtkRenderWindowInteractor_override "vtkIOSRenderWindowInteractor")
+  list(APPEND vtk_module_overrides "vtkRenderWindow")
+  set(vtk_module_vtkRenderWindow_override "vtkIOSRenderWindow")
+  list(APPEND Module_SRCS
+    vtkIOSRenderWindowInteractor.mm
+    vtkIOSRenderWindow.mm
+    vtkIOSGLView.mm
+    )
+  # Set specified Objective-C++ flags, if any.
+  if(VTK_REQUIRED_OBJCXX_FLAGS)
+    set_source_files_properties(vtkIOSRenderWindowInteractor.mm
+                                vtkIOSRenderWindow.mm
+                                vtkIOSGLView.mm
+                                PROPERTIES COMPILE_FLAGS "${VTK_REQUIRED_OBJCXX_FLAGS}")
+  endif(VTK_REQUIRED_OBJCXX_FLAGS)
+  set_source_files_properties(vtkIOSGLView WRAP_EXCLUDE)
+ endif()
 
 vtk_object_factory_configure("${vtk_module_overrides}")
 
@@ -310,6 +289,8 @@ vtk_module_link_libraries(${vtk-module}
 if(VTK_USE_X)
   vtk_module_link_libraries(${vtk-module}
     LINK_PUBLIC ${X11_LIBRARIES} ${X11_Xt_LIB})
+elseif(VTK_USE_OSMESA)
+  vtk_module_link_libraries(${vtk-module} LINK_PUBLIC ${OSMESA_LIBRARY})
 elseif(VTK_USE_COCOA)
   vtk_module_link_libraries(${vtk-module} LINK_PUBLIC "-framework Cocoa")
 elseif(VTK_USE_CARBON)
@@ -319,4 +300,8 @@ endif()
 if(ANDROID)
   target_link_libraries(${vtk-module}
     LINK_PUBLIC ${OPENGL_egl_LIBRARY})
+endif()
+
+if (APPLE_IOS)
+  vtk_module_link_libraries(${vtk-module} LINK_PUBLIC "-framework UIKit")
 endif()

@@ -1,9 +1,8 @@
 if (Module_vtkRenderingVolumeOpenGLNEW)
-  set(VTK_RENDERING_VOLUME_BACKEND
-    "vtkRenderingVolumeOpenGL;vtkRenderingVolumeOpenGLNew")
-else()
-  set(VTK_RENDERING_VOLUME_BACKEND "vtkRenderingVolumeOpenGL")
-endif()
+  set (VTK_RENDERING_VOLUME_BACKEND
+    vtkRenderingVolumeOpenGLNew
+    )
+endif ()
 
 vtk_module(vtkRenderingVolume
   GROUPS
@@ -15,6 +14,7 @@ vtk_module(vtkRenderingVolume
     vtkTestingCore
     vtkTestingRendering
     ${VTK_RENDERING_VOLUME_BACKEND}
+    vtkRenderingVolume${VTK_RENDERING_BACKEND}
     vtkRenderingFreeType
     vtkIOXML
     vtkImagingSources

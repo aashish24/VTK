@@ -17,10 +17,11 @@
 #include "vtkRenderingOpenGL2Module.h"
 #include <string> // For API.
 
+class vtkShaderProgram;
+
 namespace vtkgl
 {
 class BufferObject;
-class ShaderProgram;
 
 /**
  * @brief The VertexArrayObject class uses, or emulates, vertex array objects.
@@ -47,9 +48,23 @@ public:
 
   void ShaderProgramChanged();
 
-  bool AddAttributeArray(ShaderProgram &program, BufferObject &buffer,
+  bool AddAttributeArray(vtkShaderProgram *program, BufferObject &buffer,
                          const std::string &name, int offset, size_t stride,
-                         int elementType, int elementTupleSize, bool normalize);
+                         int elementType, int elementTupleSize, bool normalize)
+    {
+    return this->AddAttributeArrayWithDivisor(program, buffer, name,
+      offset,stride,elementType, elementTupleSize, normalize, 0);
+    }
+
+  bool AddAttributeArrayWithDivisor(vtkShaderProgram *program, BufferObject &buffer,
+                         const std::string &name, int offset, size_t stride,
+                         int elementType, int elementTupleSize, bool normalize,
+                         int divisor);
+
+  bool AddAttributeMatrixWithDivisor(vtkShaderProgram *program, BufferObject &buffer,
+                         const std::string &name, int offset, size_t stride,
+                         int elementType, int elementTupleSize, bool normalize,
+                         int divisor);
 
   bool RemoveAttributeArray(const std::string &name);
 
@@ -61,3 +76,5 @@ private:
 } // End of vtkgl namespace
 
 #endif // __vtkglVertexArrayObject_h
+
+// VTK-HeaderTest-Exclude: vtkglVertexArrayObject.h

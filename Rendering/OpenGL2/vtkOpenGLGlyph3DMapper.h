@@ -28,11 +28,10 @@
 
 #include "vtkRenderingOpenGL2Module.h" // For export macro
 #include "vtkGlyph3DMapper.h"
-#include "vtkGlyph3D.h" // for the constants (VTK_SCALE_BY_SCALAR, ...).
-#include "vtkWeakPointer.h" // needed for vtkWeakPointer.
 #include "vtkNew.h" // For vtkNew
 
 class vtkOpenGLGlyph3DHelper;
+class vtkBitArray;
 
 class VTKRENDERINGOPENGL2_EXPORT vtkOpenGLGlyph3DMapper
     : public vtkGlyph3DMapper
@@ -42,7 +41,7 @@ public:
   vtkTypeMacro(vtkOpenGLGlyph3DMapper, vtkGlyph3DMapper);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-   // Description:
+  // Description:
   // Method initiates the mapping process. Generally sent by the actor
   // as each frame is rendered.
   // Its behavior depends on the value of SelectMode.
@@ -55,9 +54,12 @@ public:
   virtual void ReleaseGraphicsResources(vtkWindow *window);
 
 protected:
-  //BTX
   vtkOpenGLGlyph3DMapper();
   ~vtkOpenGLGlyph3DMapper();
+
+  // Description:
+  // Render setup
+  virtual void Render(vtkRenderer*, vtkActor*, vtkDataSet*);
 
   // Description:
   // Send mapper ivars to sub-mapper.
@@ -70,23 +72,21 @@ protected:
   vtkNew<vtkColorMapper> ColorMapper;
 
   class vtkOpenGLGlyph3DMapperEntry;
+  class vtkOpenGLGlyph3DMapperSubArray;
   class vtkOpenGLGlyph3DMapperArray;
   vtkOpenGLGlyph3DMapperArray *GlyphValues; // array of value for datasets
 
+  // Description:
+  // Build data structures associated with
+  virtual void RebuildStructures(vtkOpenGLGlyph3DMapperSubArray *entry,
+    vtkIdType numPts, vtkActor* actor, vtkDataSet* dataset,
+    vtkBitArray *maskArray, bool selecting_points);
+
   vtkWeakPointer<vtkWindow> LastWindow; // Window used for previous render.
-
-  // subclass of vtkOpenGLPolyDataMapper
-  vtkOpenGLGlyph3DHelper *Mapper;
-
-  vtkTimeStamp PainterUpdateTime;
 
 private:
   vtkOpenGLGlyph3DMapper(const vtkOpenGLGlyph3DMapper&); // Not implemented.
   void operator=(const vtkOpenGLGlyph3DMapper&); // Not implemented.
-
-  virtual void Render(vtkRenderer*, vtkActor*, vtkDataSet*);
-
-  //ETX
 };
 
 #endif

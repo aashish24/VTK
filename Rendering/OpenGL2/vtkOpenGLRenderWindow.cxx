@@ -36,14 +36,14 @@
 #include "vtkTexturedActor2D.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkOpenGLShaderCache.h"
-#include "vtkOpenGLTextureUnitManager.h"
 #include "vtkStdString.h"
 #include "vtkTrivialProducer.h"
+#include "vtkTextureUnitManager.h"
 #include "vtkRendererCollection.h"
 #include <sstream>
 using std::ostringstream;
 
-vtkCxxSetObjectMacro(vtkOpenGLRenderWindow, TextureUnitManager, vtkOpenGLTextureUnitManager);
+vtkCxxSetObjectMacro(vtkOpenGLRenderWindow, TextureUnitManager, vtkTextureUnitManager);
 
 // Initialize static member that controls global maximum number of multisamples
 // (off by default on Apple because it causes problems on some Mac models).
@@ -56,7 +56,10 @@ static int vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples = 8;
 // ----------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::SetGlobalMaximumNumberOfMultiSamples(int val)
 {
-  if (val == vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples) return;
+  if (val == vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples)
+    {
+    return;
+    }
   vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples = val;
 }
 
@@ -65,6 +68,25 @@ int vtkOpenGLRenderWindow::GetGlobalMaximumNumberOfMultiSamples()
 {
   return vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples;
 }
+
+// used for OpenGL32 Support
+static bool vtkOpenGLRenderWindowContextSupportsOpenGL32 = false;
+
+bool vtkOpenGLRenderWindow::GetContextSupportsOpenGL32()
+{
+  return vtkOpenGLRenderWindowContextSupportsOpenGL32;
+}
+
+// ----------------------------------------------------------------------------
+void vtkOpenGLRenderWindow::SetContextSupportsOpenGL32(bool val)
+{
+  if (val == vtkOpenGLRenderWindowContextSupportsOpenGL32)
+    {
+    return;
+    }
+  vtkOpenGLRenderWindowContextSupportsOpenGL32 = val;
+}
+
 
 // ----------------------------------------------------------------------------
 vtkOpenGLRenderWindow::vtkOpenGLRenderWindow()
@@ -129,6 +151,8 @@ void vtkOpenGLRenderWindow::ReleaseGraphicsResources()
     aren->SetRenderWindow(NULL);
     aren->SetRenderWindow(this);
     }
+  this->ShaderCache->ReleaseGraphicsResources(this);
+
   // if(this->DrawPixelsActor!=0)
   //   {
   //   this->DrawPixelsActor->ReleaseGraphicsResources(this);
@@ -664,7 +688,6 @@ void vtkOpenGLRenderWindow::DrawPixels(int x1, int y1, int x2, int y2, int numCo
 
   if (y1 < y2)
     {
-
     y_low = y1;
     y_hi  = y2;
     }
@@ -749,8 +772,9 @@ void vtkOpenGLRenderWindow::DrawPixels(int x1, int y1, int x2, int y2, int numCo
   da->SetNumberOfComponents(numComponents);
   da->SetVoidArray(data,(x_hi-x_low+1)*(y_hi-y_low+1)*numComponents,true);
   id->GetPointData()->SetScalars(da);
-
+  da->Delete();
   this->DrawPixelsActor->GetTexture()->SetInputData(id);
+  id->Delete();
 
   glDisable( GL_SCISSOR_TEST );
   glViewport(0, 0, this->Size[0], this->Size[1]);
@@ -1434,67 +1458,12 @@ int vtkOpenGLRenderWindow::SetZbufferData( int x1, int y1, int x2, int y2,
   return this->SetZbufferData(x1, y1, x2, y2, buffer->GetPointer(0));
 }
 
-int vtkOpenGLRenderWindow::SetZbufferData( int x1, int y1, int x2, int y2,
+int vtkOpenGLRenderWindow::SetZbufferData( int vtkNotUsed(x1), int vtkNotUsed(y1),
+                                           int vtkNotUsed(x2), int vtkNotUsed(y2),
                                            float *vtkNotUsed(buffer) )
 {
-  int             y_low;
-  int             x_low;
-  //int             width, height;
-
-  // set the current window
-  this->MakeCurrent();
-
-  if (y1 < y2)
-    {
-    y_low = y1;
-    }
-  else
-    {
-    y_low = y2;
-    }
-
-  if (x1 < x2)
-    {
-    x_low = x1;
-    }
-  else
-    {
-    x_low = x2;
-    }
-
-  //width =  abs(x2 - x1)+1;
-  //height = abs(y2 - y1)+1;
-
-  // Error checking
-  // Must clear previous errors first.
-  while(glGetError() != GL_NO_ERROR)
-    {
-    ;
-    }
-
-/*
-  glViewport(0, 0, this->Size[0], this->Size[1]);
-  glRasterPos2f( 2.0 * static_cast<GLfloat>(x_low) / this->Size[0] - 1,
-                 2.0 * static_cast<GLfloat>(y_low) / this->Size[1] - 1);
-
-  glDisable( GL_SCISSOR_TEST );
-
-  glPixelStorei( GL_PACK_ALIGNMENT, 1 );
-
-  glDrawPixels( width, height, GL_DEPTH_COMPONENT, GL_FLOAT, buffer); // TODO replace
-
-*/
-  // This seems to be necessary for the image to show up
-  glFlush();
-
-  if (glGetError() != GL_NO_ERROR)
-    {
-    return VTK_ERROR;
-    }
-  else
-    {
-    return VTK_OK;
-    }
+  // Todo: not sure this can be done in the new opengl, either implement or remove
+  return VTK_ERROR;
 }
 
 
@@ -1554,12 +1523,8 @@ int vtkOpenGLRenderWindow::GetTextureUnitForTexture(vtkTextureObject *texture)
 // \pre not_initialized: !OffScreenUseFrameBuffer
 // \post valid_result: (result==0 || result==1)
 //                     && (result implies OffScreenUseFrameBuffer)
-int vtkOpenGLRenderWindow::CreateHardwareOffScreenWindow(int width, int height)
+int vtkOpenGLRenderWindow::CreateHardwareOffScreenWindow(int vtkNotUsed(width), int vtkNotUsed(height))
 {
-  assert("pre: positive_width" && width>0);
-  assert("pre: positive_height" && height>0);
-  assert("pre: not_initialized" && !this->OffScreenUseFrameBuffer);
-
   // TODO: write this
 
   return 0;
@@ -1586,11 +1551,11 @@ void vtkOpenGLRenderWindow::DestroyHardwareOffScreenWindow()
 // Description:
 // Returns its texture unit manager object. A new one will be created if one
 // hasn't already been set up.
-vtkOpenGLTextureUnitManager *vtkOpenGLRenderWindow::GetTextureUnitManager()
+vtkTextureUnitManager *vtkOpenGLRenderWindow::GetTextureUnitManager()
 {
   if(this->TextureUnitManager==0)
     {
-    vtkOpenGLTextureUnitManager *manager=vtkOpenGLTextureUnitManager::New();
+    vtkTextureUnitManager *manager=vtkTextureUnitManager::New();
 
     // This does not form a reference loop since vtkOpenGLHardwareSupport does
     // not keep a reference to the render window.

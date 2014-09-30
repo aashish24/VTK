@@ -30,7 +30,7 @@
 
 class vtkIdList;
 class vtkOpenGLHardwareSupport;
-class vtkOpenGLTextureUnitManager;
+class vtkTextureUnitManager;
 class vtkOpenGLShaderCache;
 class vtkStdString;
 class vtkTexture;
@@ -125,6 +125,11 @@ public:
   // Initialize VTK for rendering in a new OpenGL context
   virtual void OpenGLInitContext();
 
+  // Description::
+  // Get if the copntext includes opengl core profile 3.2 support
+  static bool GetContextSupportsOpenGL32();
+  void SetContextSupportsOpenGL32(bool val);
+
   // Description:
   // Return the OpenGL name of the back left buffer.
   // It is GL_BACK_LEFT if GL is bound to the window-system-provided
@@ -188,12 +193,10 @@ public:
   // Returns an Shader Cache object
   vtkGetObjectMacro(ShaderCache,vtkOpenGLShaderCache);
 
-  //BTX
   // Description:
   // Returns its texture unit manager object. A new one will be created if one
   // hasn't already been set up.
-  vtkOpenGLTextureUnitManager *GetTextureUnitManager();
-  //ETX
+  vtkTextureUnitManager *GetTextureUnitManager();
 
   // Description:
   // Block the thread until the actual rendering is finished().
@@ -208,9 +211,7 @@ protected:
 
   long OldMonitorSetting;
 
-  //BTX
   std::map<const vtkTextureObject *, int> TextureResourceIds;
-  //ETX
 
   int GetPixelData(int x, int y, int x2, int y2, int front, unsigned char* data);
   int GetRGBAPixelData(int x, int y, int x2, int y2, int front, float* data);
@@ -251,7 +252,7 @@ protected:
 
   // Description:
   // Set the texture unit manager.
-  void SetTextureUnitManager(vtkOpenGLTextureUnitManager *textureUnitManager);
+  void SetTextureUnitManager(vtkTextureUnitManager *textureUnitManager);
 
   unsigned int BackLeftBuffer;
   unsigned int BackRightBuffer;
@@ -273,7 +274,7 @@ protected:
 
   vtkTimeStamp ContextCreationTime;
 
-  vtkOpenGLTextureUnitManager *TextureUnitManager;
+  vtkTextureUnitManager *TextureUnitManager;
 
   vtkTexturedActor2D *DrawPixelsActor;
 

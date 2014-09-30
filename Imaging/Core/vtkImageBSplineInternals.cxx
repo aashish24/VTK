@@ -39,7 +39,7 @@
 
 #include "vtkImageBSplineInternals.h"
 #include "vtkAbstractImageInterpolator.h"
-#include <stddef.h>
+#include <cstddef>
 #include <math.h>
 
 /*--------------------------------------------------------------------------*/
@@ -322,7 +322,6 @@ GetPoleValues
         default:
             NbPoles = 0L;
             return(1);
-            break;
     }
 
     return(0);
