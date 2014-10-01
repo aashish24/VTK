@@ -30,6 +30,7 @@
 #include <vtkBoundingBox.h>
 #include <vtkCamera.h>
 #include <vtkCellArray.h>
+#include <vtkClipConvexPolyData.h>
 #include <vtkColorTransferFunction.h>
 #include <vtkCommand.h>
 #include <vtkDataArray.h>
@@ -37,6 +38,7 @@
 #include <vtkFloatArray.h>
 #include <vtk_glew.h>
 #include <vtkImageData.h>
+#include "vtkMath.h"
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -209,7 +211,7 @@ public:
   void UpdateDepthTexture(vtkRenderer* ren, vtkVolume* vol);
 
   // Update the volume geometry
-  void UpdateVolumeGeometry();
+  void UpdateVolumeGeometry(vtkRenderer* ren, vtkVolume* vol);
 
   // Update cropping params to shader
   void UpdateCropping(vtkRenderer* ren, vtkVolume* vol);
@@ -1010,17 +1012,133 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateDepthTexture(
 }
 
 //----------------------------------------------------------------------------
-void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateVolumeGeometry()
+void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateVolumeGeometry(
+  vtkRenderer *ren, vtkVolume *vol)
 {
+
+  // Pass camera through inverse volume matrix
+  // so that we are in the same coordinate system
+//  vol->GetMatrix(this->InverseVolumeMat.GetPointer());
+//  this->InverseVolumeMat->Invert();
+  // Normals should be transformed using the transpose of inverse
+  // InverseVolumeMat
+  vtkNew<vtkMatrix4x4> tempMat;
+  vtkMatrix4x4::Transpose(this->InverseVolumeMat.GetPointer(),
+                          tempMat.GetPointer());
+
   vtkNew<vtkTessellatedBoxSource> boxSource;
   vtkNew<vtkDensifyPolyData> densityPolyData;
   boxSource->SetBounds(this->LoadedBounds);
   boxSource->QuadsOn();
   boxSource->SetLevel(0);
 
-  densityPolyData->SetInputConnection(boxSource->GetOutputPort());
-  densityPolyData->Update();
+  vtkNew<vtkPlaneCollection> planes;
+  planes->RemoveAllItems();
+
+  vtkCamera* cam = ren->GetActiveCamera();
+  double camWorldRange[2];
+  double camWorldPos[4];
+  double camFocalWorldPoint[4];
+  double camWorldDirection[4];
+  double camPos[4];
+  double camPlaneNormal[4];
+
+  cam->GetPosition(camWorldPos);
+  camWorldPos[3] = 1.0;
+  this->InverseVolumeMat->MultiplyPoint( camWorldPos, camPos );
+  if ( camPos[3] )
+    {
+    camPos[0] /= camPos[3];
+    camPos[1] /= camPos[3];
+    camPos[2] /= camPos[3];
+    }
+
+  cam->GetFocalPoint(camFocalWorldPoint);
+  camFocalWorldPoint[3]=1.0;
+
+  // The range (near/far) must also be transformed
+  // into the local coordinate system.
+  camWorldDirection[0] = camFocalWorldPoint[0] - camWorldPos[0];
+  camWorldDirection[1] = camFocalWorldPoint[1] - camWorldPos[1];
+  camWorldDirection[2] = camFocalWorldPoint[2] - camWorldPos[2];
+  camWorldDirection[3] = 1.0;
+
+  // Compute the normalized near plane normal
+  tempMat->MultiplyPoint( camWorldDirection, camPlaneNormal );
+
+  vtkMath::Normalize(camWorldDirection);
+  vtkMath::Normalize(camPlaneNormal);
+
+  double camNearWorldPoint[4];
+  double camFarWorldPoint[4];
+  double camNearPoint[4];
+  double camFarPoint[4];
+
+  cam->GetClippingRange(camWorldRange);
+  camNearWorldPoint[0] = camWorldPos[0] + camWorldRange[0]*camWorldDirection[0];
+  camNearWorldPoint[1] = camWorldPos[1] + camWorldRange[0]*camWorldDirection[1];
+  camNearWorldPoint[2] = camWorldPos[2] + camWorldRange[0]*camWorldDirection[2];
+  camNearWorldPoint[3] = 1.;
+
+  camFarWorldPoint[0] = camWorldPos[0] + camWorldRange[1]*camWorldDirection[0];
+  camFarWorldPoint[1] = camWorldPos[1] + camWorldRange[1]*camWorldDirection[1];
+  camFarWorldPoint[2] = camWorldPos[2] + camWorldRange[1]*camWorldDirection[2];
+  camFarWorldPoint[3] = 1.;
+
+  this->InverseVolumeMat->MultiplyPoint( camNearWorldPoint, camNearPoint );
+  if (camNearPoint[3]!=0.0)
+    {
+    camNearPoint[0] /= camNearPoint[3];
+    camNearPoint[1] /= camNearPoint[3];
+    camNearPoint[2] /= camNearPoint[3];
+    }
+
+  this->InverseVolumeMat->MultiplyPoint( camFarWorldPoint, camFarPoint );
+  if (camFarPoint[3]!=0.0)
+    {
+    camFarPoint[0] /= camFarPoint[3];
+    camFarPoint[1] /= camFarPoint[3];
+    camFarPoint[2] /= camFarPoint[3];
+    }
+
+  vtkNew<vtkPlane> nearPlane;
+
+  // We add an offset to the near plane to avoid hardware clipping of the
+  // near plane due to floating-point precision.
+  // camPlaneNormal is a unit vector, if the offset is larger than the
+  // distance between near and far point, it will not work, in this case we
+  // pick a fraction of the near-far distance.
+  double distNearFar=
+    sqrt(vtkMath::Distance2BetweenPoints(camNearPoint,camFarPoint));
+  double offset=0.001; // some arbitrary small value.
+  if(offset>=distNearFar)
+    {
+    offset=distNearFar/1000.0;
+    }
+
+  camNearPoint[0]+=camPlaneNormal[0]*offset;
+  camNearPoint[1]+=camPlaneNormal[1]*offset;
+  camNearPoint[2]+=camPlaneNormal[2]*offset;
+
+  nearPlane->SetOrigin( camNearPoint );
+  nearPlane->SetNormal( camPlaneNormal );
+  planes->AddItem(nearPlane.GetPointer());
+
+  vtkNew<vtkClipConvexPolyData> clip;
+  clip->SetInputConnection(boxSource->GetOutputPort());
+  clip->SetPlanes(planes.GetPointer());
+  clip->Update();
+
+  if (this->Parent->ClippingPlanes && this->Parent->ClippingPlanes->GetNumberOfItems()!=0)
+    {
+    densityPolyData->SetInputConnection(clip->GetOutputPort());
+    }
+  else
+    {
+    densityPolyData->SetInputConnection(boxSource->GetOutputPort());
+    }
   densityPolyData->SetNumberOfSubdivisions(2);
+  densityPolyData->Update();
 
   this->BBoxPolyData = densityPolyData->GetOutput();
   vtkPoints* points = this->BBoxPolyData->GetPoints();
@@ -1042,8 +1160,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateVolumeGeometry()
   glBufferData (GL_ARRAY_BUFFER, points->GetData()->GetDataSize() *
                 points->GetData()->GetDataTypeSize(),
                 points->GetData()->GetVoidPointer(0), GL_STATIC_DRAW);
-
-
 
   // Enable vertex attributre array for position
   // and pass indices to element array  buffer
@@ -1611,8 +1727,14 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
     this->Impl->LoadVolume(input, scalars);
     this->Impl->LoadMask(input, this->MaskInput,
                                    this->Impl->Extents, vol);
-    this->Impl->UpdateVolumeGeometry();
     }
+  // Will require transpose of this matrix for OpenGL
+  // Scene matrix
+  vtkMatrix4x4* volumeMatrix4x4 = vol->GetMatrix();
+  this->Impl->InverseVolumeMat->DeepCopy(volumeMatrix4x4);
+  this->Impl->InverseVolumeMat->Invert();
+
+    this->Impl->UpdateVolumeGeometry(ren, vol);
 
   // Mask
   vtkVolumeMask* mask = 0;
@@ -1838,11 +1960,11 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   glUniformMatrix4fv(this->Impl->Shader("m_inverse_modelview_matrix"), 1,
                      GL_FALSE, &(fvalue16[0]));
 
-  // Will require transpose of this matrix for OpenGL
-  // Scene matrix
-  vtkMatrix4x4* volumeMatrix4x4 = vol->GetMatrix();
-  this->Impl->InverseVolumeMat->DeepCopy(volumeMatrix4x4);
-  this->Impl->InverseVolumeMat->Invert();
+//  // Will require transpose of this matrix for OpenGL
+//  // Scene matrix
+//  vtkMatrix4x4* volumeMatrix4x4 = vol->GetMatrix();
+//  this->Impl->InverseVolumeMat->DeepCopy(volumeMatrix4x4);
+//  this->Impl->InverseVolumeMat->Invert();
 
   vtkInternal::VtkToGlMatrix(volumeMatrix4x4, fvalue16);
   glUniformMatrix4fv(this->Impl->Shader("m_volume_matrix"), 1,
