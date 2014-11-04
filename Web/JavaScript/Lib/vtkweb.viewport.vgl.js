@@ -376,6 +376,7 @@
               id: sceneObject.id,
               data: data,
               hasTransparency: sceneObject.transparency,
+              opacity: sceneObject.opacity,
               layer: sceneObject.layer
             };
 

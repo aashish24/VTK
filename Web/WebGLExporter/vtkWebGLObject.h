@@ -61,6 +61,8 @@ public:
   void SetHasTransparency(bool t);
   void SetInteractAtServer(bool i);
   void SetType(WebGLObjectTypes t);
+  void SetOpacity(double opacity);
+  double GetOpacity();
   bool isWireframeMode();
   bool isVisible();
   bool HasChanged();
@@ -90,6 +92,7 @@ protected:
     bool hasTransparency;
     bool iswidget;
     bool interactAtServer;
+    double opacity;
 
 private:
   vtkWebGLObject(const vtkWebGLObject&); // Not implemented

@@ -196,3 +196,15 @@ unsigned char* vtkWebGLObject::GetBinaryData(int vtkNotUsed(part)){return NULL;}
 int vtkWebGLObject::GetBinarySize(int vtkNotUsed(part)){return 0;}
 //-----------------------------------------------------------------------------
 int vtkWebGLObject::GetNumberOfParts(){return 0;}
+
+//-----------------------------------------------------------------------------
+void vtkWebGLObject::SetOpacity(double o)
+  {
+    this->opacity = o;
+  }
+//-----------------------------------------------------------------------------
+double vtkWebGLObject::GetOpacity()
+  {
+  return this->opacity;
+  }
+//-----------------------------------------------------------------------------

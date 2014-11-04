@@ -289,6 +289,7 @@ void vtkWebGLExporter::parseActor(vtkActor* actor, unsigned long actorTime, long
             newobj->SetTransformationMatrix(actor->GetMatrix());
             newobj->SetVisibility(actor->GetVisibility() != 0);
             newobj->SetHasTransparency(actor->HasTranslucentPolygonalGeometry() != 0);
+            if (newobj->HasTransparency()) newobj->SetOpacity(actor->GetProperty()->GetOpacity());
             newobj->SetIsWidget(isWidget);
             newobj->SetInteractAtServer(isWidget);
             newobj->GenerateBinaryData();
@@ -315,6 +316,7 @@ void vtkWebGLExporter::parseActor(vtkActor* actor, unsigned long actorTime, long
         obj->SetTransformationMatrix(actor->GetMatrix());
         obj->SetVisibility(actor->GetVisibility() != 0);
         obj->SetHasTransparency(actor->HasTranslucentPolygonalGeometry() != 0);
+        if (obj->HasTransparency()) obj->SetOpacity(actor->GetProperty()->GetOpacity());
         obj->SetIsWidget(isWidget);
         obj->SetInteractAtServer(isWidget);
         obj->GenerateBinaryData();
@@ -329,6 +331,7 @@ void vtkWebGLExporter::parseActor(vtkActor* actor, unsigned long actorTime, long
         obj->SetTransformationMatrix(actor->GetMatrix());
         obj->SetVisibility(actor->GetVisibility() != 0);
         obj->SetHasTransparency(actor->HasTranslucentPolygonalGeometry() != 0);
+        if (obj->HasTransparency()) obj->SetOpacity(actor->GetProperty()->GetOpacity());
         obj->SetIsWidget(isWidget);
         obj->SetInteractAtServer(isWidget);
         obj->GenerateBinaryData();
@@ -343,6 +346,7 @@ void vtkWebGLExporter::parseActor(vtkActor* actor, unsigned long actorTime, long
         obj->SetTransformationMatrix(actor->GetMatrix());
         obj->SetVisibility(actor->GetVisibility() != 0);
         obj->SetHasTransparency(actor->HasTranslucentPolygonalGeometry() != 0);
+        if (obj->HasTransparency()) obj->SetOpacity(actor->GetProperty()->GetOpacity());
         obj->SetIsWidget(false);
         obj->SetInteractAtServer(false);
         obj->GenerateBinaryData();
@@ -360,6 +364,7 @@ void vtkWebGLExporter::parseActor(vtkActor* actor, unsigned long actorTime, long
         obj->SetTransformationMatrix(actor->GetMatrix());
         obj->SetVisibility(actor->GetVisibility() != 0);
         obj->SetHasTransparency(actor->HasTranslucentPolygonalGeometry() != 0);
+        if (obj->HasTransparency()) obj->SetOpacity(actor->GetProperty()->GetOpacity());
         obj->SetIsWidget(isWidget);
         obj->SetInteractAtServer(isWidget);
         obj->GenerateBinaryData();
@@ -556,9 +561,11 @@ const char* vtkWebGLExporter::GenerateMetadata()
       else ss << ", ";
       ss << "{\"id\":" << obj->GetId() << ", \"md5\":\"" << obj->GetMD5() << "\""
          << ", \"parts\":" << obj->GetNumberOfParts()
-         << ", \"interactAtServer\":" << obj->InteractAtServer()
-         << ", \"transparency\":" << obj->HasTransparency()
-         << ", \"layer\":" << obj->GetLayer()
+         << ", \"interactAtServer\":" << obj->InteractAtServer();
+      bool trans = obj->HasTransparency();
+      ss << ", \"transparency\":" <<  trans;
+      if (trans) ss << ", \"opacity\":" << obj->GetOpacity();
+      ss << ", \"layer\":" << obj->GetLayer()
          << ", \"wireframe\":" << obj->isWireframeMode() << "}";
       }
     }
@@ -594,9 +601,12 @@ const char* vtkWebGLExporter::GenerateExportMetadata()
         else ss << ", ";
         ss << "{\"id\":" << obj->GetId() << ", \"md5\":\"" << obj->GetMD5() << "\""
            << ", \"parts\":" << 1
-           << ", \"interactAtServer\":" << obj->InteractAtServer()
-           << ", \"transparency\":" << obj->HasTransparency()
-           << ", \"layer\":" << obj->GetLayer()
+           << ", \"interactAtServer\":" << obj->InteractAtServer();
+
+        bool trans = obj->HasTransparency();
+        ss << ", \"transparency\":" <<  trans;
+        if (trans) ss << ", \"opacity\":" << obj->GetOpacity();
+        ss << ", \"layer\":" << obj->GetLayer()
            << ", \"wireframe\":" << obj->isWireframeMode() << "}";
         }
       }
