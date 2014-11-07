@@ -37,6 +37,7 @@
 #include <vtkTestUtilities.h>
 #include <vtkTimerLog.h>
 #include <vtkVolumeProperty.h>
+#include <vtkTIFFReader.h>
 #include <vtkXMLImageDataReader.h>
 
 int TestGPURayCastVolumeRotation(int argc, char *argv[])
@@ -47,9 +48,8 @@ int TestGPURayCastVolumeRotation(int argc, char *argv[])
   vtkNew<vtkPolyDataMapper> outlineMapper;
   vtkNew<vtkGPUVolumeRayCastMapper> volumeMapper;
 
-  vtkNew<vtkXMLImageDataReader> reader;
-  const char* volumeFile = vtkTestUtilities::ExpandDataFileName(
-                            argc, argv, "Data/vase_1comp.vti");
+  vtkNew<vtkTIFFReader> reader;
+  const char* volumeFile = "/home/chaudhary/data/tomviz/SampleData/HiroPolymer_recon_DFM_double_688_mw_32bit.tif";
   reader->SetFileName(volumeFile);
   volumeMapper->SetInputConnection(reader->GetOutputPort());
 
@@ -90,14 +90,6 @@ int TestGPURayCastVolumeRotation(int argc, char *argv[])
   vtkNew<vtkVolume> volume;
   volume->SetMapper(volumeMapper.GetPointer());
   volume->SetProperty(volumeProperty.GetPointer());
-
-  /// Rotate the volume for testing purposes
-  volume->RotateY(45.0);
-  outlineActor->RotateY(45.0);
-  volume->RotateZ(-90.0);
-  outlineActor->RotateZ(-90.0);
-  volume->RotateX(90.0);
-  outlineActor->RotateX(90.0);
 
   ren->AddViewProp(volume.GetPointer());
   ren->AddActor(outlineActor.GetPointer());
