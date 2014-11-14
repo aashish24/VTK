@@ -157,22 +157,22 @@ namespace vtkvolume
     if (lightingComplexity == 3)
       {
       shaderStr += std::string("\n\
-        uniform int m_numberOfLights; // only allow for up to 6 active lights\n\
-        uniform vec3 m_lightColor[6]; // intensity weighted color\n\
-        uniform vec3 m_lightDirection[6]; // normalized\n\
-        uniform vec3 m_lightPosition[6];\n\
-        uniform vec3 m_lightAttenuation[6];\n\
-        uniform float m_lightConeAngle[6];\n\
-        uniform float m_lightExponent[6];\n\
-        uniform int m_lightPositional[6];\n\
+        uniform int in_numberOfLights; // only allow for up to 6 active lights\n\
+        uniform vec3 in_lightColor[6]; // intensity weighted color\n\
+        uniform vec3 in_lightDirection[6]; // normalized\n\
+        uniform vec3 in_lightPosition[6];\n\
+        uniform vec3 in_lightAttenuation[6];\n\
+        uniform float in_lightConeAngle[6];\n\
+        uniform float in_lightExponent[6];\n\
+        uniform int in_lightPositional[6];\n\
       ");
       }
     else if (lightingComplexity == 2)
       {
       shaderStr += std::string("\n\
-        uniform int m_numberOfLights; // only allow for up to 6 active lights\n\
-        uniform vec3 m_lightColor[6]; // intensity weighted color\n\
-        uniform vec3 m_lightDirection[6]; // normalized\n\
+        uniform int in_numberOfLights; // only allow for up to 6 active lights\n\
+        uniform vec3 in_lightColor[6]; // intensity weighted color\n\
+        uniform vec3 in_lightDirection[6]; // normalized\n\
       ");
       }
 
@@ -205,7 +205,7 @@ namespace vtkvolume
       // Multiply the raymarching direction with the step size to get the \n\
       // sub-step size we need to take at each raymarching step  \n\
       g_dirStep = (in_inverseTextureDatasetMatrix * \n\
-                    vec4(geom_dir, 0.0)).xyz * in_sampleDistance; \n\
+                   vec4(geom_dir, 0.0)).xyz * in_sampleDistance; \n\
       \n\
       g_dataPos += g_dirStep * texture2D(in_noiseSampler, g_dataPos.xy).x;\n\
       \n\
@@ -436,11 +436,11 @@ namespace vtkvolume
                g2 = vec3(0.0, 0.0, 0.0); \n\
                } \n\
             vec3 final_color = vec3(0.0); \n\
-            for (int lightNum = 0; lightNum < m_numberOfLights; lightNum++)\n\
+            for (int lightNum = 0; lightNum < in_numberOfLights; lightNum++)\n\
               {\n\
               vec3 ldir = normalize((in_inverseVolumeMatrix * \n\
                                      in_inverseModelViewMatrix * \n\
-                                    vec4(m_lightDirection[lightNum].xyz, 0.0)).xyz); \n\
+                                    vec4(in_lightDirection[lightNum].xyz, 0.0)).xyz); \n\
               vec3 h = normalize(ldir + vdir); \n\
               float n_dot_h = dot(g2, h); \n\
               if (n_dot_h < 0.0 && in_twoSidedLighting) \n\
@@ -454,11 +454,11 @@ namespace vtkvolume
                 } \n\
               if (n_dot_l > 0) \n\
                 { \n\
-                diffuse += m_lightColor[lightNum] * n_dot_l; \n\
+                diffuse += in_lightColor[lightNum] * n_dot_l; \n\
                 } \n\
               if (n_dot_h > 0) \n\
                 { \n\
-                specular = m_lightColor[lightNum] * pow(n_dot_h, in_shininess); \n\
+                specular = in_lightColor[lightNum] * pow(n_dot_h, in_shininess); \n\
                 } \n\
               }\n\
             final_color += (in_ambient + in_diffuce * diffuse + in_specular * specular) * color.rgb; \n\
@@ -489,32 +489,32 @@ namespace vtkvolume
             vec3 normal = (in_texureToEyeIt * vec4(grad.xyz, 0.0)).xyz; \n\
             normal = normalize(normal); \n\
             vec3 lightDir; \n\
-            for (int lightNum = 0; lightNum < m_numberOfLights; lightNum++)\n\
+            for (int lightNum = 0; lightNum < in_numberOfLights; lightNum++)\n\
               {\n\
               float attenuation = 1.0;\n\
               // directional\n\
-              lightDir = m_lightDirection[lightNum]; \n\
-              if (m_lightPositional[lightNum] == 0)\n\
+              lightDir = in_lightDirection[lightNum]; \n\
+              if (in_lightPositional[lightNum] == 0)\n\
                 {\n\
                 vertLightDirection = lightDir;\n\
                 }\n\
               else\n\
                 {\n\
-                vertLightDirection = (fragWorldPos.xyz - m_lightPosition[lightNum]);\n\
+                vertLightDirection = (fragWorldPos.xyz - in_lightPosition[lightNum]);\n\
                 float distance = length(vertLightDirection);\n\
                 vertLightDirection = normalize(vertLightDirection);\n\
                 attenuation = 1.0 /\n\
-                  (m_lightAttenuation[lightNum].x\n\
-                   + m_lightAttenuation[lightNum].y * distance\n\
-                   + m_lightAttenuation[lightNum].z * distance * distance);\n\
+                  (in_lightAttenuation[lightNum].x\n\
+                   + in_lightAttenuation[lightNum].y * distance\n\
+                   + in_lightAttenuation[lightNum].z * distance * distance);\n\
                 // per OpenGL standard cone angle is 90 or less for a spot light\n\
-                if (m_lightConeAngle[lightNum] <= 90.0)\n\
+                if (in_lightConeAngle[lightNum] <= 90.0)\n\
                   {\n\
                   float coneDot = dot(vertLightDirection, lightDir);\n\
                   // if inside the cone\n\
-                  if (coneDot >= cos(radians(m_lightConeAngle[lightNum])))\n\
+                  if (coneDot >= cos(radians(in_lightConeAngle[lightNum])))\n\
                     {\n\
-                    attenuation = attenuation * pow(coneDot, m_lightExponent[lightNum]);\n\
+                    attenuation = attenuation * pow(coneDot, in_lightExponent[lightNum]);\n\
                     }\n\
                   else\n\
                     {\n\
@@ -524,12 +524,12 @@ namespace vtkvolume
                 }\n\
             // diffuse and specular lighting\n\
             float df = max(0.0, attenuation * dot(normal, vertLightDirection));\n\
-            diffuse += (df * m_lightColor[lightNum]);\n\
+            diffuse += (df * in_lightColor[lightNum]);\n\
             if (dot(normal, -vertLightDirection) > 0.0)\n\
               {\n\
               float sf = attenuation*pow( max(0.0, dot(\n\
                 reflect(vertLightDirection, normal), viewDirection)), in_shininess);\n\
-              specular += (sf * m_lightColor[lightNum]);\n\
+              specular += (sf * in_lightColor[lightNum]);\n\
               }\n\
             }\n\
             vec3 final_color = vec3(0.0); \n\

@@ -1071,9 +1071,9 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateLightingParameters(
       }
     }
 
-  this->ShaderProgram->SetUniform3fv("m_lightColor", numberOfLights, lightColor);
-  this->ShaderProgram->SetUniform3fv("m_lightDirection", numberOfLights, lightDirection);
-  this->ShaderProgram->SetUniformi("m_numberOfLights", numberOfLights);
+  this->ShaderProgram->SetUniform3fv("in_lightColor", numberOfLights, lightColor);
+  this->ShaderProgram->SetUniform3fv("in_lightDirection", numberOfLights, lightDirection);
+  this->ShaderProgram->SetUniformi("in_numberOfLights", numberOfLights);
 
   // we are done unless we have positional lights
   if (this->LightComplexity < 3)
@@ -1109,11 +1109,11 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateLightingParameters(
       numberOfLights++;
       }
     }
-  this->ShaderProgram->SetUniform3fv("m_lightAttenuation", numberOfLights, lightAttenuation);
-  this->ShaderProgram->SetUniform1iv("m_lightPositional", numberOfLights, lightPositional);
-  this->ShaderProgram->SetUniform3fv("m_lightPosition", numberOfLights, lightPosition);
-  this->ShaderProgram->SetUniform1fv("m_lightExponent", numberOfLights, lightExponent);
-  this->ShaderProgram->SetUniform1fv("m_lightConeAngle", numberOfLights, lightConeAngle);
+  this->ShaderProgram->SetUniform3fv("in_lightAttenuation", numberOfLights, lightAttenuation);
+  this->ShaderProgram->SetUniform1iv("in_lightPositional", numberOfLights, lightPositional);
+  this->ShaderProgram->SetUniform3fv("in_lightPosition", numberOfLights, lightPosition);
+  this->ShaderProgram->SetUniform1fv("in_lightExponent", numberOfLights, lightExponent);
+  this->ShaderProgram->SetUniform1fv("in_lightConeAngle", numberOfLights, lightConeAngle);
 }
 
 //----------------------------------------------------------------------------
