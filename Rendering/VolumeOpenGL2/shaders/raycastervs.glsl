@@ -36,7 +36,7 @@
 /// Inputs
 ///
 //////////////////////////////////////////////////////////////////////////////
-attribute vec3 m_in_vertex_pos;
+attribute vec3 in_vertexPos;
 
 //////////////////////////////////////////////////////////////////////////////
 ///
@@ -44,8 +44,8 @@ attribute vec3 m_in_vertex_pos;
 ///
 //////////////////////////////////////////////////////////////////////////////
 /// 3D texture coordinates for texture lookup in the fragment shader
-varying vec3 m_texture_coords;
-varying vec3 m_vertex_pos;
+varying vec3 v_vertexPos;
+varying vec3 v_textureCoords;
 
 void main()
 {
@@ -56,5 +56,5 @@ void main()
   //VTK::ComputeTextureCoords::Impl
 
   /// Copy incoming vertex position for the fragment shader
-  m_vertex_pos = m_in_vertex_pos;
+  v_vertexPos = in_vertexPos;
 }
