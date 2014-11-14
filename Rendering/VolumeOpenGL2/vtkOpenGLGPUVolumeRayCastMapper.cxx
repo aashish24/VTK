@@ -845,7 +845,7 @@ int vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateOpacityTransferFunction(
 {
   if (!vol)
     {
-    std::cerr << "Invalid m_volume" << std::endl;
+    std::cerr << "Invalid in_volume" << std::endl;
     return 1;
     }
 
@@ -1349,8 +1349,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateVolumeGeometry(
                   points->GetData()->GetDataTypeSize(),
                   points->GetData()->GetVoidPointer(0), GL_STATIC_DRAW);
 
-    this->ShaderProgram->EnableAttributeArray("m_in_vertex_pos");
-    this->ShaderProgram->UseAttributeArray("m_in_vertex_pos", 0, 0, VTK_FLOAT,
+    this->ShaderProgram->EnableAttributeArray("in_vertexPos");
+    this->ShaderProgram->UseAttributeArray("in_vertexPos", 0, 0, VTK_FLOAT,
                                            3, vtkShaderProgram::NoNormalize);
 
     glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, this->CubeIndicesId);
@@ -1364,8 +1364,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateVolumeGeometry(
     glBindVertexArray(this->CubeVAOId);
 #else
     glBindBuffer (GL_ARRAY_BUFFER, this->CubeVBOId);
-    this->ShaderProgram->EnableAttributeArray("m_in_vertex_pos");
-    this->ShaderProgram->UseAttributeArray("m_in_vertex_pos", 0, 0, VTK_FLOAT,
+    this->ShaderProgram->EnableAttributeArray("in_vertexPos");
+    this->ShaderProgram->UseAttributeArray("in_vertexPos", 0, 0, VTK_FLOAT,
                                            3, vtkShaderProgram::NoNormalize);
     glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, this->CubeIndicesId);
 #endif
@@ -1945,7 +1945,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   // Make sure the context is current
   ren->GetRenderWindow()->MakeCurrent();
 
-  // Update m_volume first to make sure states are current
+  // Update in_volume first to make sure states are current
   vol->Update();
 
   vtkImageData* input = this->GetTransformedInput();
@@ -2073,7 +2073,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   this->Impl->UpdateNoiseTexture();
 
   // Grab depth sampler buffer (to handle cases when we are rendering geometry
-  // and m_volume together
+  // and in_volume together
   this->Impl->UpdateDepthTexture(ren, vol);
 
   // Update lighting parameters
@@ -2121,21 +2121,21 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   // Step should be dependant on the bounds and not on the texture size
   // since we can have non uniform voxel size / spacing / aspect ratio
   vtkInternal::ToFloat(this->Impl->CellStep, fvalue3);
-  this->Impl->ShaderProgram->SetUniform3fv("m_cell_step", 1, &fvalue3);
+  this->Impl->ShaderProgram->SetUniform3fv("in_cellStep", 1, &fvalue3);
 
   vtkInternal::ToFloat(this->Impl->CellScale, fvalue3);
-  this->Impl->ShaderProgram->SetUniform3fv("m_cell_scale", 1, &fvalue3);
+  this->Impl->ShaderProgram->SetUniform3fv("in_cellScale", 1, &fvalue3);
 
   vtkInternal::ToFloat(this->Impl->CellSpacing, fvalue3);
-  this->Impl->ShaderProgram->SetUniform3fv("m_cell_spacing", 1, &fvalue3);
+  this->Impl->ShaderProgram->SetUniform3fv("in_cellSpacing", 1, &fvalue3);
 
-  this->Impl->ShaderProgram->SetUniformf("m_sample_distance",
+  this->Impl->ShaderProgram->SetUniformf("in_sampleDistance",
                                          this->Impl->ActualSampleDistance);
 
   vtkInternal::ToFloat(this->Impl->ScalarsRange, fvalue2);
-  this->Impl->ShaderProgram->SetUniform2fv("m_scalars_range", 1, &fvalue2);
+  this->Impl->ShaderProgram->SetUniform2fv("in_scalarsRange", 1, &fvalue2);
 
-  this->Impl->ShaderProgram->SetUniformi("m_volume", 0);
+  this->Impl->ShaderProgram->SetUniformi("in_volume", 0);
   this->Impl->ShaderProgram->SetUniformi("m_opacity_transfer_func", 2);
   this->Impl->ShaderProgram->SetUniformi("in_noiseSampler", 3);
   this->Impl->ShaderProgram->SetUniformi("in_depthSampler", 4);

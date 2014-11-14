@@ -26,7 +26,7 @@
 
 /// 3D texture coordinates form vertex shader
 varying vec3 m_texture_coords;
-varying vec3 m_vertex_pos;
+varying vec3 ip_vertexPos;
 
 //////////////////////////////////////////////////////////////////////////////
 ///

@@ -59,7 +59,7 @@ namespace vtkvolume
       "mat4 ogl_projection_matrix = in_projectionMatrix; \n\
       mat4 ogl_modelview_matrix = in_modelViewMatrix; \n\
       vec4 pos = ogl_projection_matrix * ogl_modelview_matrix * \n\
-                 in_volumeMatrix * vec4(m_in_vertex_pos.xyz, 1); \n\
+                 in_volumeMatrix * vec4(in_vertexPos.xyz, 1); \n\
       gl_Position = pos;"
     );
     }
@@ -72,7 +72,7 @@ namespace vtkvolume
     return std::string(
       "// Assuming point data only. Also, we offset the texture coordinate \n\
        // to account for OpenGL treating voxel at the center of the cell. \n\
-       vec3 uvx = (m_in_vertex_pos - m_vol_extents_min) / \n\
+       vec3 uvx = (in_vertexPos - m_vol_extents_min) / \n\
                   (m_vol_extents_max - m_vol_extents_min); \n\
        vec3 delta = m_texture_extents_max - m_texture_extents_min; \n\
        m_texture_coords = (uvx * (delta - vec3(1.0)) + vec3(0.5)) / delta;"
@@ -105,7 +105,7 @@ namespace vtkvolume
     {
     std::string shaderStr = std::string(
       "// Volume dataset \n\
-      uniform sampler3D m_volume; \n\
+      uniform sampler3D in_volume; \n\
       \n\
       uniform sampler2D in_noiseSampler; \n\
       uniform sampler2D in_depthSampler; \n\
@@ -125,15 +125,15 @@ namespace vtkvolume
       uniform mat4 in_texureToEyeIt; \n\
       \n\
       // Ray step size \n\
-      uniform vec3 m_cell_step; \n\
-      uniform vec2 m_scalars_range; \n\
-      uniform vec3 m_cell_spacing; \n\
+      uniform vec3 in_cellStep; \n\
+      uniform vec2 in_scalarsRange; \n\
+      uniform vec3 in_cellSpacing; \n\
       \n\
       // Sample distance \n\
-      uniform float m_sample_distance; \n\
+      uniform float in_sampleDistance; \n\
       \n\
       // Scales \n\
-      uniform vec3 m_cell_scale; \n\
+      uniform vec3 in_cellScale; \n\
       uniform vec2 m_window_lower_left_corner; \n\
       uniform vec2 m_inv_original_window_size; \n\
       uniform vec2 m_inv_window_size; \n\
@@ -188,7 +188,7 @@ namespace vtkvolume
     {
     return std::string(
       "\n\
-      // Get the 3D texture coordinates for lookup into the m_volume dataset \n\
+      // Get the 3D texture coordinates for lookup into the in_volume dataset \n\
       g_data_pos = m_texture_coords.xyz; \n\
       \n\
       // Eye position in object space  \n\
@@ -207,7 +207,7 @@ namespace vtkvolume
       // Multiply the raymarching direction with the step size to get the \n\
       // sub-step size we need to take at each raymarching step  \n\
       g_dir_step = (in_inverseTextureDatasetMatrix * \n\
-                    vec4(geom_dir, 0.0)).xyz * m_sample_distance; \n\
+                    vec4(geom_dir, 0.0)).xyz * in_sampleDistance; \n\
       \n\
       g_data_pos += g_dir_step * texture2D(in_noiseSampler, g_data_pos.xy).x;\n\
       \n\
@@ -251,15 +251,15 @@ namespace vtkvolume
           { \n\
           vec3 g1; \n\
           vec3 g2; \n\
-          vec3 xvec = vec3(m_cell_step[0], 0.0, 0.0); \n\
-          vec3 yvec = vec3(0.0, m_cell_step[1], 0.0); \n\
-          vec3 zvec = vec3(0.0, 0.0, m_cell_step[2]); \n\
-          g1.x = texture3D(m_volume, vec3(g_data_pos + xvec)).x; \n\
-          g1.y = texture3D(m_volume, vec3(g_data_pos + yvec)).x; \n\
-          g1.z = texture3D(m_volume, vec3(g_data_pos + zvec)).x; \n\
-          g2.x = texture3D(m_volume, vec3(g_data_pos - xvec)).x; \n\
-          g2.y = texture3D(m_volume, vec3(g_data_pos - yvec)).x; \n\
-          g2.z = texture3D(m_volume, vec3(g_data_pos - zvec)).x; \n\
+          vec3 xvec = vec3(in_cellStep[0], 0.0, 0.0); \n\
+          vec3 yvec = vec3(0.0, in_cellStep[1], 0.0); \n\
+          vec3 zvec = vec3(0.0, 0.0, in_cellStep[2]); \n\
+          g1.x = texture3D(in_volume, vec3(g_data_pos + xvec)).x; \n\
+          g1.y = texture3D(in_volume, vec3(g_data_pos + yvec)).x; \n\
+          g1.z = texture3D(in_volume, vec3(g_data_pos + zvec)).x; \n\
+          g2.x = texture3D(in_volume, vec3(g_data_pos - xvec)).x; \n\
+          g2.y = texture3D(in_volume, vec3(g_data_pos - yvec)).x; \n\
+          g2.z = texture3D(in_volume, vec3(g_data_pos - zvec)).x; \n\
           return vec4((g1 - g2), -1.0); \n\
          }");
     }
@@ -276,31 +276,31 @@ namespace vtkvolume
           { \n\
           vec3 g1; \n\
           vec4 g2; \n\
-          vec3 xvec = vec3(m_cell_step[0], 0.0, 0.0); \n\
-          vec3 yvec = vec3(0.0, m_cell_step[1], 0.0); \n\
-          vec3 zvec = vec3(0.0, 0.0, m_cell_step[2]); \n\
-          g1.x = texture3D(m_volume, vec3(g_data_pos + xvec)).x; \n\
-          g1.y = texture3D(m_volume, vec3(g_data_pos + yvec)).x; \n\
-          g1.z = texture3D(m_volume, vec3(g_data_pos + zvec)).x; \n\
-          g2.x = texture3D(m_volume, vec3(g_data_pos - xvec)).x; \n\
-          g2.y = texture3D(m_volume, vec3(g_data_pos - yvec)).x; \n\
-          g2.z = texture3D(m_volume, vec3(g_data_pos - zvec)).x; \n\
-          g1.x = m_scalars_range[0] + ( \n\
-                 m_scalars_range[1] - m_scalars_range[0]) * g1.x; \n\
-          g1.y = m_scalars_range[0] + ( \n\
-                 m_scalars_range[1] - m_scalars_range[0]) * g1.y; \n\
-          g1.z = m_scalars_range[0] + ( \n\
-                 m_scalars_range[1] - m_scalars_range[0]) * g1.z; \n\
-          g2.x = m_scalars_range[0] + ( \n\
-                 m_scalars_range[1] - m_scalars_range[0]) * g2.x; \n\
-          g2.y = m_scalars_range[0] + ( \n\
-                 m_scalars_range[1] - m_scalars_range[0]) * g2.y; \n\
-          g2.z = m_scalars_range[0] + ( \n\
-                 m_scalars_range[1] - m_scalars_range[0]) * g2.z; \n\
+          vec3 xvec = vec3(in_cellStep[0], 0.0, 0.0); \n\
+          vec3 yvec = vec3(0.0, in_cellStep[1], 0.0); \n\
+          vec3 zvec = vec3(0.0, 0.0, in_cellStep[2]); \n\
+          g1.x = texture3D(in_volume, vec3(g_data_pos + xvec)).x; \n\
+          g1.y = texture3D(in_volume, vec3(g_data_pos + yvec)).x; \n\
+          g1.z = texture3D(in_volume, vec3(g_data_pos + zvec)).x; \n\
+          g2.x = texture3D(in_volume, vec3(g_data_pos - xvec)).x; \n\
+          g2.y = texture3D(in_volume, vec3(g_data_pos - yvec)).x; \n\
+          g2.z = texture3D(in_volume, vec3(g_data_pos - zvec)).x; \n\
+          g1.x = in_scalarsRange[0] + ( \n\
+                 in_scalarsRange[1] - in_scalarsRange[0]) * g1.x; \n\
+          g1.y = in_scalarsRange[0] + ( \n\
+                 in_scalarsRange[1] - in_scalarsRange[0]) * g1.y; \n\
+          g1.z = in_scalarsRange[0] + ( \n\
+                 in_scalarsRange[1] - in_scalarsRange[0]) * g1.z; \n\
+          g2.x = in_scalarsRange[0] + ( \n\
+                 in_scalarsRange[1] - in_scalarsRange[0]) * g2.x; \n\
+          g2.y = in_scalarsRange[0] + ( \n\
+                 in_scalarsRange[1] - in_scalarsRange[0]) * g2.y; \n\
+          g2.z = in_scalarsRange[0] + ( \n\
+                 in_scalarsRange[1] - in_scalarsRange[0]) * g2.z; \n\
           g2.xyz = g1 - g2.xyz; \n\
-          vec3 m_spacing = vec3(m_cell_spacing[0], \n\
-                               m_cell_spacing[1],  \n\
-                               m_cell_spacing[2]); \n\
+          vec3 m_spacing = vec3(in_cellSpacing[0], \n\
+                               in_cellSpacing[1],  \n\
+                               in_cellSpacing[2]); \n\
           vec3 aspect; \n\
           float avg_spacing = (m_spacing[0] + \n\
                               m_spacing[1] + \n\
@@ -325,8 +325,8 @@ namespace vtkvolume
             { \n\
             g2.xyz = vec3(0.0, 0.0, 0.0); \n\
             } \n\
-          grad_mag = grad_mag * 1.0 / (0.25 * (m_scalars_range[1] - \n\
-                                              (m_scalars_range[0]))); \n\
+          grad_mag = grad_mag * 1.0 / (0.25 * (in_scalarsRange[1] - \n\
+                                              (in_scalarsRange[0]))); \n\
           grad_mag = clamp(grad_mag, 0.0, 1.0); \n\
           g2.w = grad_mag;\n\
           return g2; \n\
@@ -374,12 +374,12 @@ namespace vtkvolume
               light_pos_obj.z /= light_pos_obj.w; \n\
               light_pos_obj.w = 1.0; \n\
             } \n\
-            vec3 ldir = normalize(light_pos_obj.xyz - m_vertex_pos); \n\
-            vec3 vdir = normalize(g_eye_pos_obj.xyz - m_vertex_pos); \n\
+            vec3 ldir = normalize(light_pos_obj.xyz - ip_vertexPos); \n\
+            vec3 vdir = normalize(g_eye_pos_obj.xyz - ip_vertexPos); \n\
             vec3 h = normalize(ldir + vdir); \n\
             vec4 grad = computeGradient(); \n\
             vec3 g2 = grad.xyz; \n\
-            g2 = (1.0/m_cell_spacing) * g2; \n\
+            g2 = (1.0/in_cellSpacing) * g2; \n\
             float normalLength = length(g2);\n\
             if (normalLength > 0.0) \n\
               { \n\
@@ -422,12 +422,12 @@ namespace vtkvolume
         shaderStr = std::string(" \n\
           vec4 computeLighting(vec4 color) \n\
             {\n\
-            vec3 vdir = normalize(g_eye_pos_obj.xyz - m_vertex_pos); \n\
+            vec3 vdir = normalize(g_eye_pos_obj.xyz - ip_vertexPos); \n\
             vec4 grad = computeGradient(); \n\
             vec3 g2 = grad.xyz; \n\
             vec3 diffuse = vec3(0.0); \n\
             vec3 specular = vec3(0.0); \n\
-            g2 = (1.0/m_cell_spacing) * g2; \n\
+            g2 = (1.0/in_cellSpacing) * g2; \n\
             float normalLength = length(g2);\n\
             if (normalLength > 0.0) \n\
                { \n\
@@ -573,7 +573,7 @@ namespace vtkvolume
       return std::string(
         "vec3 computeRayDirection() \n\
            { \n\
-           return normalize(m_vertex_pos.xyz - g_eye_pos_obj.xyz); \n\
+           return normalize(ip_vertexPos.xyz - g_eye_pos_obj.xyz); \n\
            }");
       }
     else
@@ -686,7 +686,7 @@ namespace vtkvolume
     if (mapper->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND)
       {
       shaderStr += std::string(
-        "vec4 scalar = texture3D(m_volume, g_data_pos); \n\
+        "vec4 scalar = texture3D(in_volume, g_data_pos); \n\
          if (l_max_value.w < scalar.w) \n\
            { \n\
            l_max_value = scalar; \n\
@@ -695,7 +695,7 @@ namespace vtkvolume
     else if (mapper->GetBlendMode() == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND)
       {
       shaderStr += std::string(
-        "vec4 scalar = texture3D(m_volume, g_data_pos) ; \n\
+        "vec4 scalar = texture3D(in_volume, g_data_pos) ; \n\
           if (l_min_value.w > scalar.w) \n\
             { \n\
             l_min_value = scalar; \n\
@@ -704,7 +704,7 @@ namespace vtkvolume
     else if (mapper->GetBlendMode() == vtkVolumeMapper::ADDITIVE_BLEND)
       {
       shaderStr += std::string(
-        "vec4 scalar = texture3D(m_volume, g_data_pos); \n\
+        "vec4 scalar = texture3D(in_volume, g_data_pos); \n\
         float opacity = computeOpacity(scalar); \n\
         l_sum_value = l_sum_value + opacity * scalar.w;");
       }
@@ -715,7 +715,7 @@ namespace vtkvolume
         {
         shaderStr += std::string(
           "// Data fetching from the red channel of volume texture \n\
-          vec4 scalar = texture3D(m_volume, g_data_pos); \n\
+          vec4 scalar = texture3D(in_volume, g_data_pos); \n\
           vec4 g_src_color = computeColor(scalar);");
         }
 
@@ -867,7 +867,7 @@ namespace vtkvolume
     return std::string(
       "// The two constants l_tex_min and l_tex_max have a value of \n\
       // vec3(-1,-1,-1) and vec3(1,1,1) respectively. To determine if the \n\
-      // data value is outside the m_volume data, we use the sign function. \n\
+      // data value is outside the in_volume data, we use the sign function. \n\
       // The sign function return -1 if the value is less than 0, 0 if the \n\
       // value is equal to 0 and 1 if value is greater than 0. Hence, the \n\
       // sign function for the calculation (sign(g_data_pos-l_tex_min) and \n\
@@ -876,7 +876,7 @@ namespace vtkvolume
       // When we do a dot product between two vec3(1,1,1) we get answer 3. \n\
       // So to be within the dataset limits, the dot product will return a \n\
       // value less than 3. If it is greater than 3, we are already out of \n\
-      // the m_volume dataset \n\
+      // the in_volume dataset \n\
       stop = dot(sign(g_data_pos - l_tex_min), sign(l_tex_max - g_data_pos)) \n\
              < 3.0; \n\
       \n\
@@ -1205,7 +1205,7 @@ namespace vtkvolume
     else
       {
       return std::string("\n\
-        vec4 scalar = texture3D(m_volume, g_data_pos); \n\
+        vec4 scalar = texture3D(in_volume, g_data_pos); \n\
         if (m_mask_blendfactor == 0.0)\n\
           {\n\
           g_src_color = computeColor(scalar);\n\
