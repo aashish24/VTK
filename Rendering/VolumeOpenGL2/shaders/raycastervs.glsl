@@ -44,7 +44,7 @@ attribute vec3 in_vertexPos;
 ///
 //////////////////////////////////////////////////////////////////////////////
 /// 3D texture coordinates for texture lookup in the fragment shader
-varying vec3 m_texture_coords;
+varying vec3 ip_textureCoords;
 varying vec3 ip_vertexPos;
 
 void main()
