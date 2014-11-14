@@ -63,7 +63,7 @@ vec4 g_eyePosObj;
 /// We support only 8 clipping planes for now
 /// The first value is the size of the data array for clipping
 /// planes (origin, normal)
-uniform float m_clipping_planes[49];
+uniform float in_clippingPlanes[49];
 
 //////////////////////////////////////////////////////////////////////////////
 ///

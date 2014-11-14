@@ -1046,19 +1046,19 @@ namespace vtkvolume
    else
       {
       return std::string("\n\
-        float clipping_planes_ts[48];\n\
-        int clipping_planes_size = int(m_clipping_planes[0]);\n\
+        float clippingPlanesTexture[48];\n\
+        int clippingPlanesSize = int(in_clippingPlanes[0]);\n\
         \n\
         mat4 world_to_texture_mat = in_inverseTextureDatasetMatrix *\n\
                                     in_inverseVolumeMatrix;\n\
-        for (int i = 0; i < clipping_planes_size; i = i + 6)\n\
+        for (int i = 0; i < clippingPlanesSize; i = i + 6)\n\
           {\n\
-          vec4 origin = vec4(m_clipping_planes[i + 1],\n\
-                             m_clipping_planes[i + 2],\n\
-                             m_clipping_planes[i + 3], 1.0);\n\
-          vec4 normal = vec4(m_clipping_planes[i + 4],\n\
-                             m_clipping_planes[i + 5],\n\
-                             m_clipping_planes[i + 6], 0.0);\n\
+          vec4 origin = vec4(in_clippingPlanes[i + 1],\n\
+                             in_clippingPlanes[i + 2],\n\
+                             in_clippingPlanes[i + 3], 1.0);\n\
+          vec4 normal = vec4(in_clippingPlanes[i + 4],\n\
+                             in_clippingPlanes[i + 5],\n\
+                             in_clippingPlanes[i + 6], 0.0);\n\
           \n\
           origin = world_to_texture_mat * origin;\n\
           normal = world_to_texture_mat * normal;\n\
@@ -1076,13 +1076,13 @@ namespace vtkvolume
             normal[2] = normal[2] / normal[3];\n\
             }\n\
           \n\
-          clipping_planes_ts[i]     = origin[0];\n\
-          clipping_planes_ts[i + 1] = origin[1];\n\
-          clipping_planes_ts[i + 2] = origin[2];\n\
+          clippingPlanesTexture[i]     = origin[0];\n\
+          clippingPlanesTexture[i + 1] = origin[1];\n\
+          clippingPlanesTexture[i + 2] = origin[2];\n\
           \n\
-          clipping_planes_ts[i + 3] = normal[0];\n\
-          clipping_planes_ts[i + 4] = normal[1];\n\
-          clipping_planes_ts[i + 5] = normal[2];\n\
+          clippingPlanesTexture[i + 3] = normal[0];\n\
+          clippingPlanesTexture[i + 4] = normal[1];\n\
+          clippingPlanesTexture[i + 5] = normal[2];\n\
           }");
       }
   }
@@ -1099,14 +1099,14 @@ namespace vtkvolume
     else
       {
       return std::string("\n\
-        for (int i = 0; i < (clipping_planes_size) && !l_skip; i = i + 6)\n\
+        for (int i = 0; i < (clippingPlanesSize) && !l_skip; i = i + 6)\n\
          {\n\
-         if (dot(vec3(g_dataPos - vec3(clipping_planes_ts[i],\n\
-                                        clipping_planes_ts[i + 1],\n\
-                                        clipping_planes_ts[i + 2])),\n\
-             vec3(clipping_planes_ts[i + 3],\n\
-                  clipping_planes_ts[i + 4],\n\
-                  clipping_planes_ts[i + 5])) < 0)\n\
+         if (dot(vec3(g_dataPos - vec3(clippingPlanesTexture[i],\n\
+                                       clippingPlanesTexture[i + 1],\n\
+                                       clippingPlanesTexture[i + 2])),\n\
+             vec3(clippingPlanesTexture[i + 3],\n\
+                  clippingPlanesTexture[i + 4],\n\
+                  clippingPlanesTexture[i + 5])) < 0)\n\
            {\n\
            l_skip = true;\n\
            break;\n\
