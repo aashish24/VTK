@@ -200,12 +200,12 @@ namespace vtkvolume
         } \n\
       \n\
       // Getting the ray marching direction (in object space); \n\
-      vec3 geom_dir = computeRayDirection(); \n\
+      vec3 rayDir = computeRayDirection(); \n\
       \n\
       // Multiply the raymarching direction with the step size to get the \n\
       // sub-step size we need to take at each raymarching step  \n\
       g_dirStep = (in_inverseTextureDatasetMatrix * \n\
-                   vec4(geom_dir, 0.0)).xyz * in_sampleDistance; \n\
+                   vec4(rayDir, 0.0)).xyz * in_sampleDistance; \n\
       \n\
       g_dataPos += g_dirStep * texture2D(in_noiseSampler, g_dataPos.xy).x;\n\
       \n\
@@ -854,7 +854,7 @@ namespace vtkvolume
       l_terminatePointMax = \n\
         length(terminatePoint.xyz - g_dataPos.xyz) / \n\
                               length(g_dirStep); \n\
-      float m_current_t = 0.0;");
+      float l_currentT = 0.0;");
     }
 
   //--------------------------------------------------------------------------
@@ -889,11 +889,11 @@ namespace vtkvolume
       // we terminated the loop or if we have hit an obstacle in the \n\
       // direction of they ray (using depth buffer) we terminate as well. \n\
       if((g_fragColor.a > (1 - 1/255.0)) ||  \n\
-          m_current_t >= l_terminatePointMax) \n\
+          l_currentT >= l_terminatePointMax) \n\
         { \n\
         break; \n\
         } \n\
-      ++m_current_t;"
+      ++l_currentT;"
     );
     }
 
