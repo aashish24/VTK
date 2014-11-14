@@ -2114,7 +2114,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
     ren->GetActiveCamera()->GetDirectionOfProjection(dir);
     vtkInternal::ToFloat(dir[0], dir[1], dir[2], fvalue3);
     this->Impl->ShaderProgram->SetUniform3fv(
-      "m_projection_direction", 1, &fvalue3);
+      "in_projectionDirection", 1, &fvalue3);
     }
 
   // Pass constant uniforms at initialization
@@ -2136,10 +2136,10 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   this->Impl->ShaderProgram->SetUniform2fv("in_scalarsRange", 1, &fvalue2);
 
   this->Impl->ShaderProgram->SetUniformi("in_volume", 0);
-  this->Impl->ShaderProgram->SetUniformi("m_opacity_transfer_func", 2);
+  this->Impl->ShaderProgram->SetUniformi("in_opacityTransferFunc", 2);
   this->Impl->ShaderProgram->SetUniformi("in_noiseSampler", 3);
   this->Impl->ShaderProgram->SetUniformi("in_depthSampler", 4);
-  this->Impl->ShaderProgram->SetUniformi("m_gradient_transfer_func", 5);
+  this->Impl->ShaderProgram->SetUniformi("in_gradientTransferFunc", 5);
 
   if (this->Impl->CurrentMask)
     {
@@ -2149,7 +2149,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   if(numberOfScalarComponents == 1 &&
      this->BlendMode!=vtkGPUVolumeRayCastMapper::ADDITIVE_BLEND)
     {
-    this->Impl->ShaderProgram->SetUniformi("m_color_transfer_func", 1);
+    this->Impl->ShaderProgram->SetUniformi("in_colorTransferFunc", 1);
 
     if (this->MaskInput != 0 && this->MaskType == LabelMapMaskType)
       {

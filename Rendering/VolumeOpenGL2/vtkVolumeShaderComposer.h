@@ -265,10 +265,10 @@ namespace vtkvolume
              vol->GetProperty()->HasGradientOpacity())
       {
       return std::string(" \n\
-        uniform sampler1D m_gradient_transfer_func;\n\
+        uniform sampler1D in_gradientTransferFunc;\n\
         float computeGradientOpacity(vec4 grad) \n\
           { \n\
-          return texture1D(m_gradient_transfer_func, grad.w).w;\n\
+          return texture1D(in_gradientTransferFunc, grad.w).w;\n\
           }\n\
         vec4 computeGradient() \n\
           { \n\
@@ -552,7 +552,7 @@ namespace vtkvolume
               if (grad.w >= 0.0)\n\
                 {\n\
                 color.a = color.a * \n\
-                  texture1D(m_gradient_transfer_func, grad.w).w; \n\
+                  texture1D(in_gradientTransferFunc, grad.w).w; \n\
                 }\n\
              return color; \n\
           }");
@@ -577,11 +577,11 @@ namespace vtkvolume
     else
       {
       return std::string(
-        "uniform vec3 m_projection_direction; \n\
+        "uniform vec3 in_projectionDirection; \n\
          vec3 computeRayDirection() \n\
            { \n\
            return normalize((in_inverseVolumeMatrix * \n\
-                             vec4(m_projection_direction, 0.0)).xyz); \n\
+                             vec4(in_projectionDirection, 0.0)).xyz); \n\
            }");
       }
     }
@@ -595,10 +595,10 @@ namespace vtkvolume
       if (numberOfComponents == 1)
         {
         return std::string(" \n\
-          uniform sampler1D m_color_transfer_func; \n\
+          uniform sampler1D in_colorTransferFunc; \n\
           vec4 computeColor(vec4 scalar) \n\
             { \n\
-            return computeLighting(vec4(texture1D(m_color_transfer_func, \n\
+            return computeLighting(vec4(texture1D(in_colorTransferFunc, \n\
                                                   scalar.w).xyz, \n\
                                         computeOpacity(scalar))); \n\
             }");
@@ -618,10 +618,10 @@ namespace vtkvolume
                                   int vtkNotUsed(numberOfComponents))
     {
     return std::string(
-      "uniform sampler1D m_opacity_transfer_func; \n\
+      "uniform sampler1D in_opacityTransferFunc; \n\
        float computeOpacity(vec4 scalar) \n\
          { \n\
-         return texture1D(m_opacity_transfer_func, scalar.w).w; \n\
+         return texture1D(in_opacityTransferFunc, scalar.w).w; \n\
          }");
     }
 
