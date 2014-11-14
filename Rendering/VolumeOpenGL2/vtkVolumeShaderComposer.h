@@ -650,19 +650,19 @@ namespace vtkvolume
       {
       return std::string(
         "// We get data between 0.0 - 1.0 range \n\
-         vec4 l_max_value = vec4(0.0);");
+         vec4 l_maxValue = vec4(0.0);");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND)
       {
       return std::string(
         "// We get data between 0.0 - 1.0 range \n\
-        vec4 l_min_value = vec4(1.0);");
+        vec4 l_minValue = vec4(1.0);");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::ADDITIVE_BLEND)
       {
       return std::string(
         "// We get data between 0.0 - 1.0 range \n\
-        float l_sum_value = 0.0;");
+        float l_sumValue = 0.0;");
       }
     else
       {
@@ -685,18 +685,18 @@ namespace vtkvolume
       {
       shaderStr += std::string(
         "vec4 scalar = texture3D(in_volume, g_dataPos); \n\
-         if (l_max_value.w < scalar.w) \n\
+         if (l_maxValue.w < scalar.w) \n\
            { \n\
-           l_max_value = scalar; \n\
+           l_maxValue = scalar; \n\
            }");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND)
       {
       shaderStr += std::string(
         "vec4 scalar = texture3D(in_volume, g_dataPos) ; \n\
-          if (l_min_value.w > scalar.w) \n\
+          if (l_minValue.w > scalar.w) \n\
             { \n\
-            l_min_value = scalar; \n\
+            l_minValue = scalar; \n\
             }");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::ADDITIVE_BLEND)
@@ -704,7 +704,7 @@ namespace vtkvolume
       shaderStr += std::string(
         "vec4 scalar = texture3D(in_volume, g_dataPos); \n\
         float opacity = computeOpacity(scalar); \n\
-        l_sum_value = l_sum_value + opacity * scalar.w;");
+        l_sumValue = l_sumValue + opacity * scalar.w;");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::COMPOSITE_BLEND)
       {
@@ -746,24 +746,24 @@ namespace vtkvolume
     if (mapper->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND)
       {
       return std::string(
-       "vec4 g_srcColor = vec4(computeColor(l_max_value).xyz, \n\
-                                computeOpacity(l_max_value)); \n\
+       "vec4 g_srcColor = vec4(computeColor(l_maxValue).xyz, \n\
+                                computeOpacity(l_maxValue)); \n\
         g_fragColor.rgb = g_srcColor.rgb * g_srcColor.a; \n\
         g_fragColor.a = g_srcColor.a;");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND)
       {
       return std::string(
-        "vec4 g_srcColor = vec4(computeColor(l_min_value).xyz, \n\
-                                 computeOpacity(l_min_value)); \n\
+        "vec4 g_srcColor = vec4(computeColor(l_minValue).xyz, \n\
+                                 computeOpacity(l_minValue)); \n\
         g_fragColor.rgb = g_srcColor.rgb * g_srcColor.a; \n\
         g_fragColor.a = g_srcColor.a;");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::ADDITIVE_BLEND)
       {
       return std::string(
-        "l_sum_value = clamp(l_sum_value, 0.0, 1.0); \n\
-         g_fragColor = vec4(vec3(l_sum_value), 1.0);");
+        "l_sumValue = clamp(l_sumValue, 0.0, 1.0); \n\
+         g_fragColor = vec4(vec3(l_sumValue), 1.0);");
       }
     else
       {
