@@ -56,10 +56,10 @@ namespace vtkvolume
                           vtkVolume* vtkNotUsed(vol))
     {
     return std::string(
-      "mat4 ogl_projection_matrix = m_projection_matrix; \n\
-      mat4 ogl_modelview_matrix = m_modelViewMatrix; \n\
+      "mat4 ogl_projection_matrix = in_projectionMatrix; \n\
+      mat4 ogl_modelview_matrix = in_modelViewMatrix; \n\
       vec4 pos = ogl_projection_matrix * ogl_modelview_matrix * \n\
-                 m_volumeMatrix * vec4(m_in_vertex_pos.xyz, 1); \n\
+                 in_volumeMatrix * vec4(m_in_vertex_pos.xyz, 1); \n\
       gl_Position = pos;"
     );
     }
@@ -84,9 +84,9 @@ namespace vtkvolume
                               vtkVolumeMapper* vtkNotUsed(mapper),
                               vtkVolume* vtkNotUsed(vol))
     { return std::string(
-    "uniform mat4 m_modelViewMatrix; \n\
-    uniform mat4 m_projection_matrix; \n\
-    uniform mat4 m_volumeMatrix; \n\
+    "uniform mat4 in_modelViewMatrix; \n\
+    uniform mat4 in_projectionMatrix; \n\
+    uniform mat4 in_volumeMatrix; \n\
     \n\
     uniform vec3 m_vol_extents_min; \n\
     uniform vec3 m_vol_extents_max; \n\
@@ -107,22 +107,22 @@ namespace vtkvolume
       "// Volume dataset \n\
       uniform sampler3D m_volume; \n\
       \n\
-      uniform sampler2D m_noise_sampler; \n\
-      uniform sampler2D m_depth_sampler; \n\
+      uniform sampler2D in_noiseSampler; \n\
+      uniform sampler2D in_depthSampler; \n\
       \n\
       // Camera position \n\
-      uniform vec3 m_camera_pos; \n\
+      uniform vec3 in_cameraPos; \n\
       \n\
       // view and model matrices \n\
-      uniform mat4 m_volumeMatrix; \n\
+      uniform mat4 in_volumeMatrix; \n\
       uniform mat4 in_inverseVolumeMatrix; \n\
-      uniform mat4 m_projection_matrix; \n\
-      uniform mat4 m_inverse_projection_matrix; \n\
-      uniform mat4 m_modelViewMatrix; \n\
-      uniform mat4 m_inverse_modelview_matrix; \n\
-      uniform mat4 m_texture_dataset_matrix; \n\
-      uniform mat4 m_inverse_texture_dataset_matrix; \n\
-      uniform mat4 m_texture_to_eye_it; \n\
+      uniform mat4 in_projectionMatrix; \n\
+      uniform mat4 in_inverseProjectionMatrix; \n\
+      uniform mat4 in_modelViewMatrix; \n\
+      uniform mat4 in_inverseModelViewMatrix; \n\
+      uniform mat4 in_textureDatasetMatrix; \n\
+      uniform mat4 in_inverseTextureDatasetMatrix; \n\
+      uniform mat4 in_texureToEyeIt; \n\
       \n\
       // Ray step size \n\
       uniform vec3 m_cell_step; \n\
@@ -192,7 +192,7 @@ namespace vtkvolume
       g_data_pos = m_texture_coords.xyz; \n\
       \n\
       // Eye position in object space  \n\
-      g_eye_pos_obj = (in_inverseVolumeMatrix * vec4(m_camera_pos, 1.0)); \n\
+      g_eye_pos_obj = (in_inverseVolumeMatrix * vec4(in_cameraPos, 1.0)); \n\
       if (g_eye_pos_obj.w != 0.0) \n\
         { \n\
         g_eye_pos_obj.x /= g_eye_pos_obj.w; \n\
@@ -206,10 +206,10 @@ namespace vtkvolume
       \n\
       // Multiply the raymarching direction with the step size to get the \n\
       // sub-step size we need to take at each raymarching step  \n\
-      g_dir_step = (m_inverse_texture_dataset_matrix * \n\
+      g_dir_step = (in_inverseTextureDatasetMatrix * \n\
                     vec4(geom_dir, 0.0)).xyz * m_sample_distance; \n\
       \n\
-      g_data_pos += g_dir_step * texture2D(m_noise_sampler, g_data_pos.xy).x;\n\
+      g_data_pos += g_dir_step * texture2D(in_noiseSampler, g_data_pos.xy).x;\n\
       \n\
       // Flag to deternmine if voxel should be considered for the rendering \n\
       bool l_skip = false;");
@@ -366,7 +366,7 @@ namespace vtkvolume
             {\n\
             // Light position in object space \n\
             vec4 light_pos_obj = (in_inverseVolumeMatrix * \n\
-                                    vec4(m_camera_pos, 1.0)); \n\
+                                    vec4(in_cameraPos, 1.0)); \n\
             if (light_pos_obj.w != 0.0) \n\
               { \n\
               light_pos_obj.x /= light_pos_obj.w; \n\
@@ -441,7 +441,7 @@ namespace vtkvolume
             for (int lightNum = 0; lightNum < m_numberOfLights; lightNum++)\n\
               {\n\
               vec3 ldir = normalize((in_inverseVolumeMatrix * \n\
-                                     m_inverse_modelview_matrix * \n\
+                                     in_inverseModelViewMatrix * \n\
                                     vec4(m_lightDirection[lightNum].xyz, 0.0)).xyz); \n\
               vec3 h = normalize(ldir + vdir); \n\
               float n_dot_h = dot(g2, h); \n\
@@ -477,8 +477,8 @@ namespace vtkvolume
         shaderStr = std::string("\n\
           vec4 computeLighting(vec4 color)\n\
             {\n\
-            vec4 fragWorldPos = m_modelViewMatrix * m_volumeMatrix * \n\
-                                  m_texture_dataset_matrix * vec4(g_data_pos, 1.0); \n\
+            vec4 fragWorldPos = in_modelViewMatrix * in_volumeMatrix * \n\
+                                  in_textureDatasetMatrix * vec4(g_data_pos, 1.0); \n\
             if (fragWorldPos.w != 0.0) \n\
               { \n\
               fragWorldPos /= fragWorldPos.w; \n\
@@ -488,7 +488,7 @@ namespace vtkvolume
             vec3 specular = vec3(0,0,0);\n\
             vec3 vertLightDirection;\n\
             vec4 grad = computeGradient(); \n\
-            vec3 normal = (m_texture_to_eye_it * vec4(grad.xyz, 0.0)).xyz; \n\
+            vec3 normal = (in_texureToEyeIt * vec4(grad.xyz, 0.0)).xyz; \n\
             normal = normalize(normal); \n\
             vec3 lightDir; \n\
             for (int lightNum = 0; lightNum < m_numberOfLights; lightNum++)\n\
@@ -809,12 +809,12 @@ namespace vtkvolume
       // we use a fraction of it. The texture coordinates is less than 1 if \n\
       // the reduction factor is less than 1. \n\
       // Device coordinates are between -1 and 1. We need texture \n\
-      // coordinates between 0 and 1 the m_depth_sampler buffer has the \n\
+      // coordinates between 0 and 1 the in_depthSampler buffer has the \n\
       // original size buffer. \n\
       vec2 m_frag_tex_coord = \n\
         (gl_FragCoord.xy - m_window_lower_left_corner) * \n\
                                m_inv_window_size; \n\
-      vec4 l_depth_value = texture2D(m_depth_sampler, m_frag_tex_coord); \n\
+      vec4 l_depth_value = texture2D(in_depthSampler, m_frag_tex_coord); \n\
       float m_terminate_point_max = 0.0; \n\
       \n\
       // Depth test \n\
@@ -844,12 +844,12 @@ namespace vtkvolume
       m_terminate_point.w = 1.0; \n\
       \n\
       // From normalized device coordinates to eye coordinates. \n\
-      // m_projection_matrix is inversed because of way VT \n\
+      // in_projectionMatrix is inversed because of way VT \n\
       // From eye coordinates to texture coordinates \n\
-      m_terminate_point = m_inverse_texture_dataset_matrix * \n\
+      m_terminate_point = in_inverseTextureDatasetMatrix * \n\
                           in_inverseVolumeMatrix * \n\
-                          m_inverse_modelview_matrix * \n\
-                          m_inverse_projection_matrix * \n\
+                          in_inverseModelViewMatrix * \n\
+                          in_inverseProjectionMatrix * \n\
                           m_terminate_point; \n\
       m_terminate_point /= m_terminate_point.w; \n\
       \n\
@@ -970,7 +970,7 @@ namespace vtkvolume
     return std::string("\n\
       // Convert cropping region to texture space \n\
       float cropping_planes_ts[6];\n\
-      mat4  datasetToTextureMat = m_inverse_texture_dataset_matrix; \n\
+      mat4  datasetToTextureMat = in_inverseTextureDatasetMatrix; \n\
       vec4 temp = vec4(cropping_planes[0], cropping_planes[1], 0.0, 1.0); \n\
       temp = datasetToTextureMat * temp; \n\
       if (temp[3] != 0.0) {temp[0] /= temp[3]; temp[1] /= temp[3];} \n\
@@ -1051,7 +1051,7 @@ namespace vtkvolume
         float clipping_planes_ts[48];\n\
         int clipping_planes_size = int(m_clipping_planes[0]);\n\
         \n\
-        mat4 world_to_texture_mat = m_inverse_texture_dataset_matrix *\n\
+        mat4 world_to_texture_mat = in_inverseTextureDatasetMatrix *\n\
                                     in_inverseVolumeMatrix;\n\
         for (int i = 0; i < clipping_planes_size; i = i + 6)\n\
           {\n\
