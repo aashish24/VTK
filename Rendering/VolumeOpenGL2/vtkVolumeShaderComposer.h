@@ -809,50 +809,50 @@ namespace vtkvolume
       // Device coordinates are between -1 and 1. We need texture \n\
       // coordinates between 0 and 1 the in_depthSampler buffer has the \n\
       // original size buffer. \n\
-      vec2 m_frag_tex_coord = \n\
+      vec2 fragTexCoord = \n\
         (gl_FragCoord.xy - in_windowLowerLeftCorner) * \n\
-                               in_inverseWindowSize; \n\
-      vec4 l_depth_value = texture2D(in_depthSampler, m_frag_tex_coord); \n\
-      float m_terminate_point_max = 0.0; \n\
+        in_inverseWindowSize; \n\
+      vec4 l_depthValue = texture2D(in_depthSampler, fragTexCoord); \n\
+      float l_terminatePointMax = 0.0; \n\
       \n\
       // Depth test \n\
-      if(gl_FragCoord.z >= l_depth_value.x) \n\
+      if(gl_FragCoord.z >= l_depthValue.x) \n\
        { \n\
        discard; \n\
        } \n\
       \n\
       // color buffer or max scalar buffer have a reduced size. \n\
-      m_frag_tex_coord = (gl_FragCoord.xy - in_windowLowerLeftCorner) * \n\
-                           in_inverseOriginalWindowSize; \n\
+      fragTexCoord = (gl_FragCoord.xy - in_windowLowerLeftCorner) * \n\
+                     in_inverseOriginalWindowSize; \n\
       \n\
       // Compute max number of iterations it will take before we hit \n\
       // the termination point \n\
       \n\
       // Abscissa of the point on the depth buffer along the ray. \n\
       // point in texture coordinates \n\
-      vec4 m_terminate_point; \n\
-      m_terminate_point.x = \n\
+      vec4 terminatePoint; \n\
+      terminatePoint.x = \n\
         (gl_FragCoord.x - in_windowLowerLeftCorner.x) * 2.0 * \n\
                             in_inverseWindowSize.x - 1.0; \n\
-      m_terminate_point.y = \n\
+      terminatePoint.y = \n\
         (gl_FragCoord.y - in_windowLowerLeftCorner.y) * 2.0 * \n\
                             in_inverseWindowSize.y - 1.0; \n\
-      m_terminate_point.z = (2.0 * l_depth_value.x - (gl_DepthRange.near + \n\
+      terminatePoint.z = (2.0 * l_depthValue.x - (gl_DepthRange.near + \n\
                             gl_DepthRange.far)) / gl_DepthRange.diff; \n\
-      m_terminate_point.w = 1.0; \n\
+      terminatePoint.w = 1.0; \n\
       \n\
       // From normalized device coordinates to eye coordinates. \n\
       // in_projectionMatrix is inversed because of way VT \n\
       // From eye coordinates to texture coordinates \n\
-      m_terminate_point = in_inverseTextureDatasetMatrix * \n\
+      terminatePoint = in_inverseTextureDatasetMatrix * \n\
                           in_inverseVolumeMatrix * \n\
                           in_inverseModelViewMatrix * \n\
                           in_inverseProjectionMatrix * \n\
-                          m_terminate_point; \n\
-      m_terminate_point /= m_terminate_point.w; \n\
+                          terminatePoint; \n\
+      terminatePoint /= terminatePoint.w; \n\
       \n\
-      m_terminate_point_max = \n\
-        length(m_terminate_point.xyz - g_dataPos.xyz) / \n\
+      l_terminatePointMax = \n\
+        length(terminatePoint.xyz - g_dataPos.xyz) / \n\
                               length(g_dirStep); \n\
       float m_current_t = 0.0;");
     }
@@ -889,7 +889,7 @@ namespace vtkvolume
       // we terminated the loop or if we have hit an obstacle in the \n\
       // direction of they ray (using depth buffer) we terminate as well. \n\
       if((g_fragColor.a > (1 - 1/255.0)) ||  \n\
-          m_current_t >= m_terminate_point_max) \n\
+          m_current_t >= l_terminatePointMax) \n\
         { \n\
         break; \n\
         } \n\
@@ -950,9 +950,9 @@ namespace vtkvolume
       \n\
       int computeRegion(float cp[6], vec3 pos) \n\
       { \n\
-        return ( computeRegionCoord(cp, pos, 0) +  \n\
-                (computeRegionCoord(cp, pos, 1) - 1) * 3 + \n\
-                (computeRegionCoord(cp, pos, 2) - 1) * 9); \n\
+        return (computeRegionCoord(cp, pos, 0) +  \n\
+               (computeRegionCoord(cp, pos, 1) - 1) * 3 + \n\
+               (computeRegionCoord(cp, pos, 2) - 1) * 9); \n\
       }");
   }
 
