@@ -296,17 +296,17 @@ namespace vtkvolume
           g2.z = in_scalarsRange[0] + ( \n\
                  in_scalarsRange[1] - in_scalarsRange[0]) * g2.z; \n\
           g2.xyz = g1 - g2.xyz; \n\
-          vec3 m_spacing = vec3(in_cellSpacing[0], \n\
-                               in_cellSpacing[1],  \n\
-                               in_cellSpacing[2]); \n\
+          vec3 cellSpacing = vec3(in_cellSpacing[0], \n\
+                                  in_cellSpacing[1],  \n\
+                                  in_cellSpacing[2]); \n\
           vec3 aspect; \n\
-          float avg_spacing = (m_spacing[0] + \n\
-                              m_spacing[1] + \n\
-                              m_spacing[2])/3.0; \n\
+          float avgSpacing = (cellSpacing[0] + \n\
+                              cellSpacing[1] + \n\
+                              cellSpacing[2])/3.0; \n\
           // Adjust the aspect \n\
-          aspect.x = m_spacing[0] * 2.0 / avg_spacing; \n\
-          aspect.y = m_spacing[1] * 2.0 / avg_spacing; \n\
-          aspect.z = m_spacing[2] * 2.0 / avg_spacing; \n\
+          aspect.x = cellSpacing[0] * 2.0 / avgSpacing; \n\
+          aspect.y = cellSpacing[1] * 2.0 / avgSpacing; \n\
+          aspect.z = cellSpacing[2] * 2.0 / avgSpacing; \n\
           g2.x /= aspect.x; \n\
           g2.y /= aspect.y; \n\
           g2.z /= aspect.z; \n\
