@@ -2143,7 +2143,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
 
   if (this->Impl->CurrentMask)
     {
-    this->Impl->ShaderProgram->SetUniformi("m_mask", 6);
+    this->Impl->ShaderProgram->SetUniformi("in_mask", 6);
     }
 
   if(numberOfScalarComponents == 1 &&
@@ -2153,9 +2153,9 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
 
     if (this->MaskInput != 0 && this->MaskType == LabelMapMaskType)
       {
-      this->Impl->ShaderProgram->SetUniformi("m_mask_1", 7);
-      this->Impl->ShaderProgram->SetUniformi("m_mask_2", 8);
-      this->Impl->ShaderProgram->SetUniformf("m_mask_blendfactor",
+      this->Impl->ShaderProgram->SetUniformi("in_mask1", 7);
+      this->Impl->ShaderProgram->SetUniformi("in_mask2", 8);
+      this->Impl->ShaderProgram->SetUniformf("in_maskBlendFactor",
                                              this->MaskBlendFactor);
       }
     }
@@ -2301,12 +2301,12 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   vtkInternal::ToFloat(this->Impl->LoadedBounds[0],
                        this->Impl->LoadedBounds[2],
                        this->Impl->LoadedBounds[4], fvalue3);
-  this->Impl->ShaderProgram->SetUniform3fv("m_vol_extents_min", 1, &fvalue3);
+  this->Impl->ShaderProgram->SetUniform3fv("in_volumeExtentsMin", 1, &fvalue3);
 
   vtkInternal::ToFloat(this->Impl->LoadedBounds[1],
                        this->Impl->LoadedBounds[3],
                        this->Impl->LoadedBounds[5], fvalue3);
-  this->Impl->ShaderProgram->SetUniform3fv("m_vol_extents_max", 1, &fvalue3);
+  this->Impl->ShaderProgram->SetUniform3fv("in_volumeExtentsMax", 1, &fvalue3);
 
   vtkInternal::ToFloat(this->Impl->Extents[0],
                        this->Impl->Extents[2],

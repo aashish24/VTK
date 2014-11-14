@@ -72,8 +72,8 @@ namespace vtkvolume
     return std::string(
       "// Assuming point data only. Also, we offset the texture coordinate \n\
        // to account for OpenGL treating voxel at the center of the cell. \n\
-       vec3 uvx = (in_vertexPos - m_vol_extents_min) / \n\
-                  (m_vol_extents_max - m_vol_extents_min); \n\
+       vec3 uvx = (in_vertexPos - in_volumeExtentsMin) / \n\
+                  (in_volumeExtentsMax - in_volumeExtentsMin); \n\
        vec3 delta = in_textureExtentsMax - in_textureExtentsMin; \n\
        ip_textureCoords = (uvx * (delta - vec3(1.0)) + vec3(0.5)) / delta;"
     );
@@ -88,8 +88,8 @@ namespace vtkvolume
     uniform mat4 in_projectionMatrix; \n\
     uniform mat4 in_volumeMatrix; \n\
     \n\
-    uniform vec3 m_vol_extents_min; \n\
-    uniform vec3 m_vol_extents_max; \n\
+    uniform vec3 in_volumeExtentsMin; \n\
+    uniform vec3 in_volumeExtentsMax; \n\
     \n\
     uniform vec3 in_textureExtentsMax; \n\
     uniform vec3 in_textureExtentsMin;"
@@ -1137,7 +1137,7 @@ namespace vtkvolume
       }
     else
       {
-      return std::string("uniform sampler3D m_mask;");
+      return std::string("uniform sampler3D in_mask;");
       }
   }
 
@@ -1157,7 +1157,7 @@ namespace vtkvolume
     else
       {
       return std::string("\n\
-        vec4 maskValue = texture3D(m_mask, g_dataPos);\n\
+        vec4 maskValue = texture3D(in_mask, g_dataPos);\n\
         if(maskValue.a <= 0.0)\n\
           {\n\
           l_skip = true;\n\
@@ -1181,9 +1181,9 @@ namespace vtkvolume
     else
       {
       return std::string("\n\
-        uniform float m_mask_blendfactor;\n\
-        uniform sampler1D m_mask_1;\n\
-        uniform sampler1D m_mask_2;");
+        uniform float in_maskBlendFactor;\n\
+        uniform sampler1D in_mask1;\n\
+        uniform sampler1D in_mask2;");
       }
   }
 
@@ -1204,14 +1204,14 @@ namespace vtkvolume
       {
       return std::string("\n\
         vec4 scalar = texture3D(in_volume, g_dataPos); \n\
-        if (m_mask_blendfactor == 0.0)\n\
+        if (in_maskBlendFactor == 0.0)\n\
           {\n\
           g_srcColor = computeColor(scalar);\n\
           }\n\
         else\n\
          {\n\
          // Get the mask value at this same location\n\
-         vec4 maskValue = texture3D(m_mask, g_dataPos);\n\
+         vec4 maskValue = texture3D(in_mask, g_dataPos);\n\
          if(maskValue.a == 0.0)\n\
            {\n\
            g_srcColor = computeColor(scalar);\n\
@@ -1220,18 +1220,18 @@ namespace vtkvolume
            {\n\
            if (maskValue.a == 1.0/255.0)\n\
              {\n\
-             g_srcColor = texture1D(m_mask_1, scalar.w);\n\
+             g_srcColor = texture1D(in_mask1, scalar.w);\n\
              }\n\
            else\n\
              {\n\
              // maskValue.a == 2.0/255.0\n\
-             g_srcColor = texture1D(m_mask_2, scalar.w);\n\
+             g_srcColor = texture1D(in_mask2, scalar.w);\n\
              }\n\
            g_srcColor.a = 1.0; \n\
-           if(m_mask_blendfactor < 1.0) \n\
+           if(in_maskBlendFactor < 1.0) \n\
              {\n\
-             g_srcColor = (1.0 - m_mask_blendfactor) * computeColor(scalar)\n\
-               + m_mask_blendfactor * g_srcColor;\n\
+             g_srcColor = (1.0 - in_maskBlendFactor) * computeColor(scalar)\n\
+               + in_maskBlendFactor * g_srcColor;\n\
              }\n\
            }\n\
           g_srcColor.a = computeOpacity(scalar); \n\

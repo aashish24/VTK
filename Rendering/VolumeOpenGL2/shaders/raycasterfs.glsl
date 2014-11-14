@@ -93,7 +93,7 @@ void main()
     //VTK::CompositeMask::Impl
     //VTK::Shading::Impl
 
-    /// Advance ray by m_dir_step
+    /// Advance ray
     g_dataPos += g_dirStep;
     }
 
