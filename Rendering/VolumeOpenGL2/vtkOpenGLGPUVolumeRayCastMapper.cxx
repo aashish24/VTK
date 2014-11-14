@@ -2231,7 +2231,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
 
   vtkInternal::VtkToGlMatrix(modelviewMat4x4, fvalue16);
   this->Impl->ShaderProgram->SetUniformMatrix4x4(
-    "m_modelview_matrix", &(fvalue16[0]));
+    "m_modelViewMatrix", &(fvalue16[0]));
 
   vtkInternal::VtkToGlMatrix(this->Impl->InverseModelViewMat.GetPointer(),
                              fvalue16);
@@ -2246,12 +2246,12 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
 
   vtkInternal::VtkToGlMatrix(volumeMatrix4x4, fvalue16);
   this->Impl->ShaderProgram->SetUniformMatrix4x4(
-    "m_volume_matrix", &(fvalue16[0]));
+    "m_volumeMatrix", &(fvalue16[0]));
 
   vtkInternal::VtkToGlMatrix(this->Impl->InverseVolumeMat.GetPointer(),
                              fvalue16);
   this->Impl->ShaderProgram->SetUniformMatrix4x4(
-    "m_inverse_volume_matrix", &(fvalue16[0]));
+    "in_inverseVolumeMatrix", &(fvalue16[0]));
 
   // Compute texture to dataset matrix
   this->Impl->TextureToDataSetMat->Identity();

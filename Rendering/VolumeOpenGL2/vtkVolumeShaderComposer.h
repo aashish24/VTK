@@ -57,9 +57,9 @@ namespace vtkvolume
     {
     return std::string(
       "mat4 ogl_projection_matrix = m_projection_matrix; \n\
-      mat4 ogl_modelview_matrix = m_modelview_matrix; \n\
+      mat4 ogl_modelview_matrix = m_modelViewMatrix; \n\
       vec4 pos = ogl_projection_matrix * ogl_modelview_matrix * \n\
-                 m_volume_matrix * vec4(m_in_vertex_pos.xyz, 1); \n\
+                 m_volumeMatrix * vec4(m_in_vertex_pos.xyz, 1); \n\
       gl_Position = pos;"
     );
     }
@@ -84,9 +84,9 @@ namespace vtkvolume
                               vtkVolumeMapper* vtkNotUsed(mapper),
                               vtkVolume* vtkNotUsed(vol))
     { return std::string(
-    "uniform mat4 m_modelview_matrix; \n\
+    "uniform mat4 m_modelViewMatrix; \n\
     uniform mat4 m_projection_matrix; \n\
-    uniform mat4 m_volume_matrix; \n\
+    uniform mat4 m_volumeMatrix; \n\
     \n\
     uniform vec3 m_vol_extents_min; \n\
     uniform vec3 m_vol_extents_max; \n\
@@ -114,11 +114,11 @@ namespace vtkvolume
       uniform vec3 m_camera_pos; \n\
       \n\
       // view and model matrices \n\
-      uniform mat4 m_volume_matrix; \n\
-      uniform mat4 m_inverse_volume_matrix; \n\
+      uniform mat4 m_volumeMatrix; \n\
+      uniform mat4 in_inverseVolumeMatrix; \n\
       uniform mat4 m_projection_matrix; \n\
       uniform mat4 m_inverse_projection_matrix; \n\
-      uniform mat4 m_modelview_matrix; \n\
+      uniform mat4 m_modelViewMatrix; \n\
       uniform mat4 m_inverse_modelview_matrix; \n\
       uniform mat4 m_texture_dataset_matrix; \n\
       uniform mat4 m_inverse_texture_dataset_matrix; \n\
@@ -192,7 +192,7 @@ namespace vtkvolume
       g_data_pos = m_texture_coords.xyz; \n\
       \n\
       // Eye position in object space  \n\
-      g_eye_pos_obj = (m_inverse_volume_matrix * vec4(m_camera_pos, 1.0)); \n\
+      g_eye_pos_obj = (in_inverseVolumeMatrix * vec4(m_camera_pos, 1.0)); \n\
       if (g_eye_pos_obj.w != 0.0) \n\
         { \n\
         g_eye_pos_obj.x /= g_eye_pos_obj.w; \n\
@@ -365,7 +365,7 @@ namespace vtkvolume
           vec4 computeLighting(vec4 color) \n\
             {\n\
             // Light position in object space \n\
-            vec4 light_pos_obj = (m_inverse_volume_matrix * \n\
+            vec4 light_pos_obj = (in_inverseVolumeMatrix * \n\
                                     vec4(m_camera_pos, 1.0)); \n\
             if (light_pos_obj.w != 0.0) \n\
               { \n\
@@ -440,7 +440,7 @@ namespace vtkvolume
             vec3 final_color = vec3(0.0); \n\
             for (int lightNum = 0; lightNum < m_numberOfLights; lightNum++)\n\
               {\n\
-              vec3 ldir = normalize((m_inverse_volume_matrix * \n\
+              vec3 ldir = normalize((in_inverseVolumeMatrix * \n\
                                      m_inverse_modelview_matrix * \n\
                                     vec4(m_lightDirection[lightNum].xyz, 0.0)).xyz); \n\
               vec3 h = normalize(ldir + vdir); \n\
@@ -477,7 +477,7 @@ namespace vtkvolume
         shaderStr = std::string("\n\
           vec4 computeLighting(vec4 color)\n\
             {\n\
-            vec4 fragWorldPos = m_modelview_matrix * m_volume_matrix * \n\
+            vec4 fragWorldPos = m_modelViewMatrix * m_volumeMatrix * \n\
                                   m_texture_dataset_matrix * vec4(g_data_pos, 1.0); \n\
             if (fragWorldPos.w != 0.0) \n\
               { \n\
@@ -582,7 +582,7 @@ namespace vtkvolume
         "uniform vec3 m_projection_direction; \n\
          vec3 computeRayDirection() \n\
            { \n\
-           return normalize((m_inverse_volume_matrix * \n\
+           return normalize((in_inverseVolumeMatrix * \n\
                              vec4(m_projection_direction, 0.0)).xyz); \n\
            }");
       }
@@ -847,7 +847,7 @@ namespace vtkvolume
       // m_projection_matrix is inversed because of way VT \n\
       // From eye coordinates to texture coordinates \n\
       m_terminate_point = m_inverse_texture_dataset_matrix * \n\
-                          m_inverse_volume_matrix * \n\
+                          in_inverseVolumeMatrix * \n\
                           m_inverse_modelview_matrix * \n\
                           m_inverse_projection_matrix * \n\
                           m_terminate_point; \n\
@@ -1052,7 +1052,7 @@ namespace vtkvolume
         int clipping_planes_size = int(m_clipping_planes[0]);\n\
         \n\
         mat4 world_to_texture_mat = m_inverse_texture_dataset_matrix *\n\
-                                    m_inverse_volume_matrix;\n\
+                                    in_inverseVolumeMatrix;\n\
         for (int i = 0; i < clipping_planes_size; i = i + 6)\n\
           {\n\
           vec4 origin = vec4(m_clipping_planes[i + 1],\n\
