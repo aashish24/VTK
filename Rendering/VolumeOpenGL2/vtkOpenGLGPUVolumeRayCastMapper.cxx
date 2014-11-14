@@ -1026,7 +1026,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateLightingParameters(
     return;
     }
 
-  this->ShaderProgram->SetUniformi("m_twoSidedLighting",
+  this->ShaderProgram->SetUniformi("in_twoSidedLighting",
                                    ren->GetTwoSidedLighting());
 
   if (this->LightComplexity < 2)
@@ -2161,16 +2161,16 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
     }
 
   fvalue3[0] = fvalue3[1] = fvalue3[2] = vol->GetProperty()->GetAmbient();
-  this->Impl->ShaderProgram->SetUniform3f("m_ambient", fvalue3);
+  this->Impl->ShaderProgram->SetUniform3f("in_ambient", fvalue3);
 
   fvalue3[0] = fvalue3[1] = fvalue3[2] = vol->GetProperty()->GetDiffuse();
-  this->Impl->ShaderProgram->SetUniform3f("m_diffuse", fvalue3);
+  this->Impl->ShaderProgram->SetUniform3f("in_diffuce", fvalue3);
 
   fvalue3[0] = fvalue3[1] = fvalue3[2] = vol->GetProperty()->GetSpecular();
-  this->Impl->ShaderProgram->SetUniform3f("m_specular", fvalue3);
+  this->Impl->ShaderProgram->SetUniform3f("in_specular", fvalue3);
 
   fvalue3[0] = vol->GetProperty()->GetSpecularPower();
-  this->Impl->ShaderProgram->SetUniformf("m_shininess", fvalue3[0]);
+  this->Impl->ShaderProgram->SetUniformf("in_shininess", fvalue3[0]);
 
   // Bind textures
   // Volume texture is at unit 0
@@ -2311,24 +2311,24 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   vtkInternal::ToFloat(this->Impl->Extents[0],
                        this->Impl->Extents[2],
                        this->Impl->Extents[4], fvalue3);
-  this->Impl->ShaderProgram->SetUniform3fv("m_texture_extents_min", 1, &fvalue3);
+  this->Impl->ShaderProgram->SetUniform3fv("in_textureExtentsMin", 1, &fvalue3);
 
   vtkInternal::ToFloat(this->Impl->Extents[1],
                        this->Impl->Extents[3],
                        this->Impl->Extents[5], fvalue3);
-  this->Impl->ShaderProgram->SetUniform3fv("m_texture_extents_max", 1, &fvalue3);
+  this->Impl->ShaderProgram->SetUniform3fv("in_textureExtentsMax", 1, &fvalue3);
 
   // TODO Take consideration of reduction factor
   vtkInternal::ToFloat(this->Impl->WindowLowerLeft, fvalue2);
-  this->Impl->ShaderProgram->SetUniform2fv("m_window_lower_left_corner", 1, &fvalue2);
+  this->Impl->ShaderProgram->SetUniform2fv("in_windowLowerLeftCorner", 1, &fvalue2);
 
   vtkInternal::ToFloat(1.0 / this->Impl->WindowSize[0],
                        1.0 / this->Impl->WindowSize[1], fvalue2);
-  this->Impl->ShaderProgram->SetUniform2fv("m_inv_original_window_size", 1, &fvalue2);
+  this->Impl->ShaderProgram->SetUniform2fv("in_inverseOriginalWindowSize", 1, &fvalue2);
 
   vtkInternal::ToFloat(1.0 / this->Impl->WindowSize[0],
                        1.0 / this->Impl->WindowSize[1], fvalue2);
-  this->Impl->ShaderProgram->SetUniform2fv("m_inv_window_size", 1, &fvalue2);
+  this->Impl->ShaderProgram->SetUniform2fv("in_inverseWindowSize", 1, &fvalue2);
 
   // Updating cropping if enabled
   this->Impl->UpdateCropping(ren, vol);

@@ -74,7 +74,7 @@ namespace vtkvolume
        // to account for OpenGL treating voxel at the center of the cell. \n\
        vec3 uvx = (in_vertexPos - m_vol_extents_min) / \n\
                   (m_vol_extents_max - m_vol_extents_min); \n\
-       vec3 delta = m_texture_extents_max - m_texture_extents_min; \n\
+       vec3 delta = in_textureExtentsMax - in_textureExtentsMin; \n\
        ip_textureCoords = (uvx * (delta - vec3(1.0)) + vec3(0.5)) / delta;"
     );
     }
@@ -91,8 +91,8 @@ namespace vtkvolume
     uniform vec3 m_vol_extents_min; \n\
     uniform vec3 m_vol_extents_max; \n\
     \n\
-    uniform vec3 m_texture_extents_max; \n\
-    uniform vec3 m_texture_extents_min;"
+    uniform vec3 in_textureExtentsMax; \n\
+    uniform vec3 in_textureExtentsMin;"
     );
     }
 
@@ -134,25 +134,23 @@ namespace vtkvolume
       \n\
       // Scales \n\
       uniform vec3 in_cellScale; \n\
-      uniform vec2 m_window_lower_left_corner; \n\
-      uniform vec2 m_inv_original_window_size; \n\
-      uniform vec2 m_inv_window_size; \n\
-      uniform vec3 m_texture_extents_max; \n\
-      uniform vec3 m_texture_extents_min; \n\
+      uniform vec2 in_windowLowerLeftCorner; \n\
+      uniform vec2 in_inverseOriginalWindowSize; \n\
+      uniform vec2 in_inverseWindowSize; \n\
+      uniform vec3 in_textureExtentsMax; \n\
+      uniform vec3 in_textureExtentsMin; \n\
       \n\
       // Material and lighting \n\
-      uniform vec3 m_diffuse; \n\
-      uniform vec3 m_ambient; \n\
-      uniform vec3 m_specular; \n\
-      uniform float m_shininess; \n\
-      // Other useful variales; \n\
-      vec4 g_src_color; \n\
-      vec4 g_eye_pos_obj; ");
+      uniform vec3 in_diffuce; \n\
+      uniform vec3 in_ambient; \n\
+      uniform vec3 in_specular; \n\
+      uniform float in_shininess; \n\
+      ");
 
     if (lightingComplexity > 0)
       {
       shaderStr += std::string("\n\
-        uniform bool m_twoSidedLighting; \n\
+        uniform bool in_twoSidedLighting; \n\
       ");
       }
 
@@ -192,13 +190,13 @@ namespace vtkvolume
       g_dataPos = ip_textureCoords.xyz; \n\
       \n\
       // Eye position in object space  \n\
-      g_eye_pos_obj = (in_inverseVolumeMatrix * vec4(in_cameraPos, 1.0)); \n\
-      if (g_eye_pos_obj.w != 0.0) \n\
+      g_eyePosObj = (in_inverseVolumeMatrix * vec4(in_cameraPos, 1.0)); \n\
+      if (g_eyePosObj.w != 0.0) \n\
         { \n\
-        g_eye_pos_obj.x /= g_eye_pos_obj.w; \n\
-        g_eye_pos_obj.y /= g_eye_pos_obj.w; \n\
-        g_eye_pos_obj.z /= g_eye_pos_obj.w; \n\
-        g_eye_pos_obj.w = 1.0; \n\
+        g_eyePosObj.x /= g_eyePosObj.w; \n\
+        g_eyePosObj.y /= g_eyePosObj.w; \n\
+        g_eyePosObj.z /= g_eyePosObj.w; \n\
+        g_eyePosObj.w = 1.0; \n\
         } \n\
       \n\
       // Getting the ray marching direction (in object space); \n\
@@ -375,7 +373,7 @@ namespace vtkvolume
               light_pos_obj.w = 1.0; \n\
             } \n\
             vec3 ldir = normalize(light_pos_obj.xyz - ip_vertexPos); \n\
-            vec3 vdir = normalize(g_eye_pos_obj.xyz - ip_vertexPos); \n\
+            vec3 vdir = normalize(g_eyePosObj.xyz - ip_vertexPos); \n\
             vec3 h = normalize(ldir + vdir); \n\
             vec4 grad = computeGradient(); \n\
             vec3 g2 = grad.xyz; \n\
@@ -392,22 +390,22 @@ namespace vtkvolume
             vec3 final_color = vec3(0.0); \n\
             float n_dot_l = dot(g2, ldir); \n\
             float n_dot_h = dot(g2, h); \n\
-            if (n_dot_l < 0.0 && m_twoSidedLighting) \n\
+            if (n_dot_l < 0.0 && in_twoSidedLighting) \n\
               { \n\
               n_dot_l = -n_dot_l; \n\
               } \n\
-            if (n_dot_h < 0.0 && m_twoSidedLighting) \n\
+            if (n_dot_h < 0.0 && in_twoSidedLighting) \n\
               { \n\
               n_dot_h = -n_dot_h; \n\
               } \n\
-            final_color += m_ambient * color.rgb; \n\
+            final_color += in_ambient * color.rgb; \n\
             if (n_dot_l > 0) \n\
               { \n\
-              final_color += m_diffuse * n_dot_l * color.rgb; \n\
+              final_color += in_diffuce * n_dot_l * color.rgb; \n\
               } \n\
             if (n_dot_h > 0) \n\
               { \n\
-              final_color += m_specular * pow(n_dot_h, m_shininess); \n\
+              final_color += in_specular * pow(n_dot_h, in_shininess); \n\
               } \n\
             final_color = clamp(final_color, vec3(0.0), vec3(1.0)); \n\
             if (grad.w >= 0.0)\n\
@@ -422,7 +420,7 @@ namespace vtkvolume
         shaderStr = std::string(" \n\
           vec4 computeLighting(vec4 color) \n\
             {\n\
-            vec3 vdir = normalize(g_eye_pos_obj.xyz - ip_vertexPos); \n\
+            vec3 vdir = normalize(g_eyePosObj.xyz - ip_vertexPos); \n\
             vec4 grad = computeGradient(); \n\
             vec3 g2 = grad.xyz; \n\
             vec3 diffuse = vec3(0.0); \n\
@@ -445,12 +443,12 @@ namespace vtkvolume
                                     vec4(m_lightDirection[lightNum].xyz, 0.0)).xyz); \n\
               vec3 h = normalize(ldir + vdir); \n\
               float n_dot_h = dot(g2, h); \n\
-              if (n_dot_h < 0.0 && m_twoSidedLighting) \n\
+              if (n_dot_h < 0.0 && in_twoSidedLighting) \n\
                 { \n\
                 n_dot_h = -n_dot_h; \n\
                 } \n\
               float n_dot_l = dot(g2, ldir); \n\
-              if (n_dot_l < 0.0 && m_twoSidedLighting) \n\
+              if (n_dot_l < 0.0 && in_twoSidedLighting) \n\
                 { \n\
                 n_dot_l = -n_dot_l; \n\
                 } \n\
@@ -460,10 +458,10 @@ namespace vtkvolume
                 } \n\
               if (n_dot_h > 0) \n\
                 { \n\
-                specular = m_lightColor[lightNum] * pow(n_dot_h, m_shininess); \n\
+                specular = m_lightColor[lightNum] * pow(n_dot_h, in_shininess); \n\
                 } \n\
               }\n\
-            final_color += (m_ambient + m_diffuse * diffuse + m_specular * specular) * color.rgb; \n\
+            final_color += (in_ambient + in_diffuce * diffuse + in_specular * specular) * color.rgb; \n\
             final_color = clamp(final_color, vec3(0.0), vec3(1.0)); \n\
             if (grad.w >= 0.0)\n\
               {\n\
@@ -530,12 +528,12 @@ namespace vtkvolume
             if (dot(normal, -vertLightDirection) > 0.0)\n\
               {\n\
               float sf = attenuation*pow( max(0.0, dot(\n\
-                reflect(vertLightDirection, normal), viewDirection)), m_shininess);\n\
+                reflect(vertLightDirection, normal), viewDirection)), in_shininess);\n\
               specular += (sf * m_lightColor[lightNum]);\n\
               }\n\
             }\n\
             vec3 final_color = vec3(0.0); \n\
-            final_color += (m_ambient + m_diffuse * diffuse + m_specular * specular) * color.rgb; \n\
+            final_color += (in_ambient + in_diffuce * diffuse + in_specular * specular) * color.rgb; \n\
             if (grad.w >= 0.0)\n\
               {\n\
               color.a = color.a * computeGradientOpacity(grad); \n\
@@ -573,7 +571,7 @@ namespace vtkvolume
       return std::string(
         "vec3 computeRayDirection() \n\
            { \n\
-           return normalize(ip_vertexPos.xyz - g_eye_pos_obj.xyz); \n\
+           return normalize(ip_vertexPos.xyz - g_eyePosObj.xyz); \n\
            }");
       }
     else
@@ -716,7 +714,7 @@ namespace vtkvolume
         shaderStr += std::string(
           "// Data fetching from the red channel of volume texture \n\
           vec4 scalar = texture3D(in_volume, g_dataPos); \n\
-          vec4 g_src_color = computeColor(scalar);");
+          vec4 g_srcColor = computeColor(scalar);");
         }
 
       shaderStr += std::string(
@@ -729,8 +727,8 @@ namespace vtkvolume
          // and accumulated to the composited colour. The alpha value from \n\
          // the previous steps is then accumulated to the composited colour \n\
          // alpha. \n\
-         g_src_color.rgb *= g_src_color.a; \n\
-         g_fragColor = (1.0f - g_fragColor.a) * g_src_color + g_fragColor;");
+         g_srcColor.rgb *= g_srcColor.a; \n\
+         g_fragColor = (1.0f - g_fragColor.a) * g_srcColor + g_fragColor;");
       }
      else
        {
@@ -748,18 +746,18 @@ namespace vtkvolume
     if (mapper->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND)
       {
       return std::string(
-       "vec4 g_src_color = vec4(computeColor(l_max_value).xyz, \n\
+       "vec4 g_srcColor = vec4(computeColor(l_max_value).xyz, \n\
                                 computeOpacity(l_max_value)); \n\
-        g_fragColor.rgb = g_src_color.rgb * g_src_color.a; \n\
-        g_fragColor.a = g_src_color.a;");
+        g_fragColor.rgb = g_srcColor.rgb * g_srcColor.a; \n\
+        g_fragColor.a = g_srcColor.a;");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::MINIMUM_INTENSITY_BLEND)
       {
       return std::string(
-        "vec4 g_src_color = vec4(computeColor(l_min_value).xyz, \n\
+        "vec4 g_srcColor = vec4(computeColor(l_min_value).xyz, \n\
                                  computeOpacity(l_min_value)); \n\
-        g_fragColor.rgb = g_src_color.rgb * g_src_color.a; \n\
-        g_fragColor.a = g_src_color.a;");
+        g_fragColor.rgb = g_srcColor.rgb * g_srcColor.a; \n\
+        g_fragColor.a = g_srcColor.a;");
       }
     else if (mapper->GetBlendMode() == vtkVolumeMapper::ADDITIVE_BLEND)
       {
@@ -812,8 +810,8 @@ namespace vtkvolume
       // coordinates between 0 and 1 the in_depthSampler buffer has the \n\
       // original size buffer. \n\
       vec2 m_frag_tex_coord = \n\
-        (gl_FragCoord.xy - m_window_lower_left_corner) * \n\
-                               m_inv_window_size; \n\
+        (gl_FragCoord.xy - in_windowLowerLeftCorner) * \n\
+                               in_inverseWindowSize; \n\
       vec4 l_depth_value = texture2D(in_depthSampler, m_frag_tex_coord); \n\
       float m_terminate_point_max = 0.0; \n\
       \n\
@@ -824,8 +822,8 @@ namespace vtkvolume
        } \n\
       \n\
       // color buffer or max scalar buffer have a reduced size. \n\
-      m_frag_tex_coord = (gl_FragCoord.xy - m_window_lower_left_corner) * \n\
-                           m_inv_original_window_size; \n\
+      m_frag_tex_coord = (gl_FragCoord.xy - in_windowLowerLeftCorner) * \n\
+                           in_inverseOriginalWindowSize; \n\
       \n\
       // Compute max number of iterations it will take before we hit \n\
       // the termination point \n\
@@ -834,11 +832,11 @@ namespace vtkvolume
       // point in texture coordinates \n\
       vec4 m_terminate_point; \n\
       m_terminate_point.x = \n\
-        (gl_FragCoord.x - m_window_lower_left_corner.x) * 2.0 * \n\
-                            m_inv_window_size.x - 1.0; \n\
+        (gl_FragCoord.x - in_windowLowerLeftCorner.x) * 2.0 * \n\
+                            in_inverseWindowSize.x - 1.0; \n\
       m_terminate_point.y = \n\
-        (gl_FragCoord.y - m_window_lower_left_corner.y) * 2.0 * \n\
-                            m_inv_window_size.y - 1.0; \n\
+        (gl_FragCoord.y - in_windowLowerLeftCorner.y) * 2.0 * \n\
+                            in_inverseWindowSize.y - 1.0; \n\
       m_terminate_point.z = (2.0 * l_depth_value.x - (gl_DepthRange.near + \n\
                             gl_DepthRange.far)) / gl_DepthRange.diff; \n\
       m_terminate_point.w = 1.0; \n\
@@ -1208,7 +1206,7 @@ namespace vtkvolume
         vec4 scalar = texture3D(in_volume, g_dataPos); \n\
         if (m_mask_blendfactor == 0.0)\n\
           {\n\
-          g_src_color = computeColor(scalar);\n\
+          g_srcColor = computeColor(scalar);\n\
           }\n\
         else\n\
          {\n\
@@ -1216,27 +1214,27 @@ namespace vtkvolume
          vec4 maskValue = texture3D(m_mask, g_dataPos);\n\
          if(maskValue.a == 0.0)\n\
            {\n\
-           g_src_color = computeColor(scalar);\n\
+           g_srcColor = computeColor(scalar);\n\
            }\n\
          else\n\
            {\n\
            if (maskValue.a == 1.0/255.0)\n\
              {\n\
-             g_src_color = texture1D(m_mask_1, scalar.w);\n\
+             g_srcColor = texture1D(m_mask_1, scalar.w);\n\
              }\n\
            else\n\
              {\n\
              // maskValue.a == 2.0/255.0\n\
-             g_src_color = texture1D(m_mask_2, scalar.w);\n\
+             g_srcColor = texture1D(m_mask_2, scalar.w);\n\
              }\n\
-           g_src_color.a = 1.0; \n\
+           g_srcColor.a = 1.0; \n\
            if(m_mask_blendfactor < 1.0) \n\
              {\n\
-             g_src_color = (1.0 - m_mask_blendfactor) * computeColor(scalar)\n\
-               + m_mask_blendfactor * g_src_color;\n\
+             g_srcColor = (1.0 - m_mask_blendfactor) * computeColor(scalar)\n\
+               + m_mask_blendfactor * g_srcColor;\n\
              }\n\
            }\n\
-          g_src_color.a = computeOpacity(scalar); \n\
+          g_srcColor.a = computeOpacity(scalar); \n\
          }");
       }
   }
