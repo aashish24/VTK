@@ -20,7 +20,7 @@
 
 #include <vtkCamera.h>
 #include <vtkColorTransferFunction.h>
-#include <vtkGPUVolumeRayCastMapper.h>
+#include <vtkFixedPointVolumeRayCastMapper.h>
 #include <vtkImageData.h>
 #include <vtkNew.h>
 #include <vtkPiecewiseFunction.h>
@@ -61,7 +61,7 @@ int TestGPURayCastIndependentComponents(int argc, char * argv[])
           *ptr++ = 0.0;
           *ptr++ = 0.0;
           }
-        else if (x < dims[0]/2 && y > dims[1]/2)
+        else if (x < dims[0]/2 && y >= dims[1]/2)
           {
           *ptr++ = 0.0;
           *ptr++ = 0.0;
@@ -87,30 +87,48 @@ int TestGPURayCastIndependentComponents(int argc, char * argv[])
   vtkNew<vtkRenderWindowInteractor> iren;
   iren->SetRenderWindow(renWin.GetPointer());
 
-  vtkNew<vtkGPUVolumeRayCastMapper> mapper;
+  vtkNew<vtkFixedPointVolumeRayCastMapper> mapper;
   mapper->SetInputData(image.GetPointer());
 
   vtkNew<vtkColorTransferFunction> ctf1;
-  ctf1->AddRGBPoint(0.0, 1.0, 1.0, 1.0);
-  ctf1->AddRGBPoint(1.0, 1.0, 0.0, 0.0);
+  ctf1->AddRGBPoint(0.0, 0.0, 0.0, 0.0);
+  ctf1->AddRGBPoint(1.0, 0.5, 0.0, 0.0);
 
   vtkNew<vtkColorTransferFunction> ctf2;
-  ctf2->AddRGBPoint(0.0, 1.0, 1.0, 1.0);
-  ctf2->AddRGBPoint(1.0, 0.0, 1.0, 0.0);
+  ctf2->AddRGBPoint(0.0, 0.0, 0.0, 0.0);
+  ctf2->AddRGBPoint(1.0, 0.0, 0.5, 0.0);
 
   vtkNew<vtkColorTransferFunction> ctf3;
-  ctf3->AddRGBPoint(0.0, 1.0, 1.0, 1.0);
-  ctf3->AddRGBPoint(1.0, 0.0, 0.0, 1.0);
+  ctf3->AddRGBPoint(0.0, 0.0, 0.0, 0.0);
+  ctf3->AddRGBPoint(1.0, 0.0, 0.0, 0.5);
 
   vtkNew<vtkColorTransferFunction> ctf4;
-  ctf4->AddRGBPoint(0.0, 1.0, 1.0, 1.0);
-  ctf4->AddRGBPoint(1.0, 1.0, 0.0, 1.0);
+  ctf4->AddRGBPoint(0.0, 0.0, 0.0, 0.0);
+  ctf4->AddRGBPoint(1.0, 0.5, 0.0, 0.5);
+
+
+  vtkNew<vtkPiecewiseFunction> pf1;
+  pf1->AddPoint(0.0, 0.0);
+  pf1->AddPoint(1.0, 0.1);
+  vtkNew<vtkPiecewiseFunction> pf2;
+  pf2->AddPoint(0.0, 0.0);
+  pf2->AddPoint(1.0, 0.1);
+  vtkNew<vtkPiecewiseFunction> pf3;
+  pf3->AddPoint(0.0, 0.0);
+  pf3->AddPoint(1.0, 0.1);
+  vtkNew<vtkPiecewiseFunction> pf4;
+  pf4->AddPoint(0.0, 0.0);
+  pf4->AddPoint(1.0, 0.1);
 
   vtkNew<vtkVolumeProperty> property;
   property->SetColor(0, ctf1.GetPointer());
   property->SetColor(1, ctf2.GetPointer());
   property->SetColor(2, ctf3.GetPointer());
   property->SetColor(3, ctf4.GetPointer());
+  property->SetScalarOpacity(0, pf1.GetPointer());
+  property->SetScalarOpacity(1, pf2.GetPointer());
+  property->SetScalarOpacity(2, pf3.GetPointer());
+  property->SetScalarOpacity(3, pf4.GetPointer());
 
   vtkNew<vtkVolume> volume;
   volume->SetMapper(mapper.GetPointer());
