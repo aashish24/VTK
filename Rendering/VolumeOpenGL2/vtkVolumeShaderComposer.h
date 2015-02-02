@@ -196,7 +196,7 @@ namespace vtkvolume
     if (noOfComponents > 1 && independentComponents)
       {
       shaderStr += std::string("\
-        uniform vec4 in_componentWeight;");
+        \nuniform vec4 in_componentWeight;");
       }
 
     return shaderStr;
@@ -747,6 +747,7 @@ namespace vtkvolume
       {
       return std::string("\
         \n  // We get data between 0.0 - 1.0 range\
+        \n  bool l_firstValue = true;\
         \n  vec4 l_maxValue = vec4(0.0);"
       );
       }
@@ -754,6 +755,7 @@ namespace vtkvolume
       {
       return std::string("\
         \n  //We get data between 0.0 - 1.0 range\
+        \n  bool l_firstValue = true;\
         \n  vec4 l_minValue = vec4(1.0);"
       );
       }
@@ -790,9 +792,14 @@ namespace vtkvolume
         {
         shaderStr += std::string("\
           \n      vec4 scalar = texture3D(in_volume, g_dataPos);\
-          \n      if (l_maxValue.w < scalar.w)\
+          \n      if (l_maxValue.w < scalar.w || l_firstValue)\
           \n        {\
           \n        l_maxValue = scalar;\
+          \n        }\
+          \n\
+          \n     if (l_firstValue)\
+          \n        {\
+          \n        l_firstValue = false;\
           \n        }"
         );
         }
@@ -800,9 +807,14 @@ namespace vtkvolume
         {
         shaderStr += std::string("\
           \n      vec4 scalar = texture3D(in_volume, g_dataPos);\
-          \n      if (l_maxValue.w < scalar.x)\
+          \n      if (l_maxValue.w < scalar.x || l_firstValue)\
           \n        {\
           \n        l_maxValue.w = scalar.x;\
+          \n        }\
+          \n\
+          \n     if (l_firstValue)\
+          \n        {\
+          \n        l_firstValue = false;\
           \n        }"
         );
         }
@@ -813,9 +825,14 @@ namespace vtkvolume
         {
         shaderStr += std::string("\
           \n      vec4 scalar = texture3D(in_volume, g_dataPos);\
-          \n      if (l_minValue.w > scalar.w)\
+          \n      if (l_minValue.w > scalar.w || l_firstValue)\
           \n        {\
           \n        l_minValue = scalar;\
+          \n        }\
+          \n\
+          \n     if (l_firstValue)\
+          \n        {\
+          \n        l_firstValue = false;\
           \n        }"
         );
         }
@@ -823,9 +840,14 @@ namespace vtkvolume
         {
         shaderStr += std::string("\
           \n      vec4 scalar = texture3D(in_volume, g_dataPos);\
-          \n      if (l_minValue.w > scalar.x)\
+          \n      if (l_minValue.w > scalar.x || l_firstValue)\
           \n        {\
           \n        l_minValue.w = scalar.x;\
+          \n        }\
+          \n\
+          \n     if (l_firstValue)\
+          \n        {\
+          \n        l_firstValue = false;\
           \n        }"
         );
         }
@@ -921,18 +943,16 @@ namespace vtkvolume
       if (noOfComponents > 1 && independentComponents)
         {
         return std::string("\
-          \n       for (int i = 0; i < in_noOfComponents; ++i)\
-          \n         {\
-          \n         vec4 g_srcColor = vec4(0);\
-          \n         for (int i = 0; i < in_noOfComponents; ++i)\
-          \n           {\
-          \n           vec4 tmp = vec4(computeColor(l_maxValue, i);\
-          \n           g_srcColor[0] += tmp[0] * tmp[3] * in_componentWeight[i];\
-          \n           g_srcColor[1] += tmp[1] * tmp[3] * in_componentWeight[i];\
-          \n           g_srcColor[2] += tmp[2] * tmp[3] * in_componentWeight[i];\
-          \n           g_srcColor[2] += tmp[3] * tmp[3] * in_componentWeight[i];\
-          \n           }\
-          \n        }"
+          \n   vec4 g_srcColor = vec4(0);\
+          \n   for (int i = 0; i < in_noOfComponents; ++i)\
+          \n     {\
+          \n     vec4 tmp = computeColor(l_maxValue, i);\
+          \n     g_srcColor[0] += tmp[0] * tmp[3] * in_componentWeight[i];\
+          \n     g_srcColor[1] += tmp[1] * tmp[3] * in_componentWeight[i];\
+          \n     g_srcColor[2] += tmp[2] * tmp[3] * in_componentWeight[i];\
+          \n     g_srcColor[3] += tmp[3] * in_componentWeight[i];\
+          \n     }\
+          \n   g_fragColor = g_srcColor;"
         );
         }
       else
@@ -950,18 +970,16 @@ namespace vtkvolume
       if (noOfComponents > 1 && independentComponents)
         {
         return std::string("\
-          \n       for (int i = 0; i < in_noOfComponents; ++i)\
-          \n         {\
-          \n         vec4 g_srcColor = vec4(0);\
-          \n         for (int i = 0; i < in_noOfComponents; ++i)\
-          \n           {\
-          \n           vec4 tmp = vec4(computeColor(l_maxValue, i);\
-          \n           g_srcColor[0] += tmp[0] * tmp[3] * in_componentWeight[i];\
-          \n           g_srcColor[1] += tmp[1] * tmp[3] * in_componentWeight[i];\
-          \n           g_srcColor[2] += tmp[2] * tmp[3] * in_componentWeight[i];\
-          \n           g_srcColor[2] += tmp[3] * tmp[3] * in_componentWeight[i];\
-          \n           }\
-          \n        }"
+          \n  vec4 g_srcColor = vec4(0);\
+          \n  for (int i = 0; i < in_noOfComponents; ++i)\
+          \n    {\
+          \n    vec4 tmp = computeColor(l_minValue, i);\
+          \n    g_srcColor[0] += tmp[0] * tmp[3] * in_componentWeight[i];\
+          \n    g_srcColor[1] += tmp[1] * tmp[3] * in_componentWeight[i];\
+          \n    g_srcColor[2] += tmp[2] * tmp[3] * in_componentWeight[i];\
+          \n    g_srcColor[2] += tmp[3] * tmp[3] * in_componentWeight[i];\
+          \n    }\
+          \n  g_fragColor = g_srcColor;"
         );
         }
       else
