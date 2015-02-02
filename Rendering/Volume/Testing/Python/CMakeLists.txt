@@ -13,6 +13,7 @@ set (GenericVolumePythonTests
   VolumePicker.py,NO_RT
   TestGPURayCastIndependentComponent.py,NO_RT
   TestGPURayCastIndependentComponentMIP.py,NO_RT
+TestGPURayCastIndependentComponentMinIP.py,NO_RT
   )
 
 # These tests are only built when the rendering backend is OpenGL
