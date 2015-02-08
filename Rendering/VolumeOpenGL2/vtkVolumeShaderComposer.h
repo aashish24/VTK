@@ -24,6 +24,7 @@
 #include <vtkVolumeMapper.h>
 #include <vtkVolumeProperty.h>
 
+#include <sstream>
 #include <string>
 
 namespace vtkvolume
@@ -676,15 +677,51 @@ namespace vtkvolume
         }
       else if (numberOfComponents > 1 && independentComponents)
         {
-        return std::string("\
-          \nuniform sampler1D in_colorTransferFunc[4];\
+        std::string shaderStr = std::string("");
+        std::ostringstream numeric;
+        for (int i = 0; i < numberOfComponents; ++i)
+          {
+          numeric.str("");
+          numeric.clear();
+          numeric << i;
+          shaderStr += std::string("\nuniform sampler1D in_colorTransferFunc") +
+                       numeric.str() + std::string(";");
+          }
+
+        shaderStr += std::string("\
           \nvec4 computeColor(vec4 scalar, int component)\
           \n  {\
-          \n  return computeLighting(vec4(texture1D(\
-          \n    in_colorTransferFunc[component],\
-          \n    scalar[component]).xyz,\
-          \n    computeOpacity(scalar, component)));\
+          \n  if (component == 0)\
+          \n    {\
+          \n    return computeLighting(vec4(texture1D(\
+          \n      in_colorTransferFunc0,\
+          \n      scalar[component]).xyz,\
+          \n      computeOpacity(scalar, component)));\
+          \n    }\
+          \n  if (component == 1)\
+          \n    {\
+          \n    return computeLighting(vec4(texture1D(\
+          \n      in_colorTransferFunc1,\
+          \n      scalar[component]).xyz,\
+          \n      computeOpacity(scalar, component)));\
+          \n    }\
+          \n  if (component == 2)\
+          \n    {\
+          \n      return computeLighting(vec4(texture1D(\
+          \n        in_colorTransferFunc2,\
+          \n        scalar[component]).xyz,\
+          \n        computeOpacity(scalar, component)));\
+          \n    }\
+          \n  if (component == 3)\
+          \n    {\
+          \n      return computeLighting(vec4(texture1D(\
+          \n        in_colorTransferFunc3,\
+          \n        scalar[component]).xyz,\
+          \n        computeOpacity(scalar, component)));\
+          \n    }\
           \n  }");
+
+          return shaderStr;
         }
 
       return std::string("\
@@ -703,13 +740,43 @@ namespace vtkvolume
     {
     if (numberOfComponents > 1 && independentComponents)
       {
-      return std::string("\
-        \nuniform sampler1D in_opacityTransferFunc[4];\
+      std::string shaderStr = std::string("");
+      std::ostringstream numeric;
+      for (int i = 0; i < numberOfComponents; ++i)
+        {
+        numeric.str("");
+        numeric.clear();
+        numeric << i;
+        shaderStr += std::string("\nuniform sampler1D in_opacityTransferFunc") +
+                     numeric.str() + std::string(";");
+        }
+
+      shaderStr += std::string("\
         \nfloat computeOpacity(vec4 scalar, int component)\
         \n  {\
-        \n  return texture1D(in_opacityTransferFunc[component],\
-        \n                   scalar[component]).w;\
+        \n  if (component == 0)\
+        \n    {\
+        \n    return texture1D(in_opacityTransferFunc0,\
+        \n                     scalar[component]).w;\
+        \n    }\
+        \n  if (component == 1)\
+        \n    {\
+        \n    return texture1D(in_opacityTransferFunc1,\
+        \n                     scalar[component]).w;\
+        \n    }\
+        \n  if (component == 2)\
+        \n    {\
+        \n      return texture1D(in_opacityTransferFunc2,\
+        \n                       scalar[component]).w;\
+        \n    }\
+        \n  if (component == 3)\
+        \n    {\
+        \n      return texture1D(in_opacityTransferFunc3,\
+        \n                       scalar[component]).w;\
+        \n    }\
         \n  }");
+
+        return shaderStr;
       }
     else
       {
@@ -867,6 +934,7 @@ namespace vtkvolume
         shaderStr += std::string("\
         \n       vec4 color[4]; vec4 tmp = vec4(0.0);\
         \n       float totalAlpha = 0.0;\
+        \n       vec4 scalar = texture3D(in_volume, g_dataPos);\
         \n       for (int i = 0; i < in_noOfComponents; ++i)\
         \n         {\
         ");
@@ -875,7 +943,6 @@ namespace vtkvolume
           {
           shaderStr += std::string("\
           \n          // Data fetching from the red channel of volume texture\
-          \n          vec4 scalar = texture3D(in_volume, g_dataPos);\
           \n          color[i] = vec4(computeColor(scalar, i));\
           \n          totalAlpha += color[i][3] * in_componentWeight[i];\
           \n          }\
