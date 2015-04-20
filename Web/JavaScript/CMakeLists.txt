@@ -128,3 +128,7 @@ add_custom_target(vtkWebJavaScript ALL DEPENDS
   "${CMAKE_CURRENT_BINARY_DIR}/ext-js-copy-complete"
   "${CMAKE_CURRENT_BINARY_DIR}/widget-copy-complete"
 )
+
+add_custom_command(TARGET vtkWebJavaScript PRE_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${ext_source_dir}/core/Shaders ${ext_binary_dir}/core)
