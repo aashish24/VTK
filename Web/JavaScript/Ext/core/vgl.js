@@ -3529,24 +3529,21 @@ inherit(vgl.geometryData, vgl.data);
  * @returns {vgl.mapper}
  */
 //////////////////////////////////////////////////////////////////////////////
-vgl.mapper = function(arg) {
+vgl.mapper = function() {
   'use strict';
 
   if (!(this instanceof vgl.mapper)) {
-    return new vgl.mapper(arg);
+    return new vgl.mapper();
   }
   vgl.boundingObject.call(this);
 
   /** @private */
-  arg = arg || {};
-
   var m_this = this,
       m_dirty = true,
       m_color = [ 0.0, 1.0, 1.0 ],
       m_geomData = null,
       m_buffers = [],
       m_bufferVertexAttributeMap = {},
-      m_dynamicDraw = arg.dynamicDraw === undefined ? false : arg.dynamicDraw,
       m_glCompileTimestamp = vgl.timestamp();
 
   ////////////////////////////////////////////////////////////////////////////
@@ -3573,17 +3570,14 @@ vgl.mapper = function(arg) {
   function createVertexBufferObjects() {
     if (m_geomData) {
       var numberOfSources = m_geomData.numberOfSources(),
-          i, j, k, bufferId = null, keys, ks, numberOfPrimitives, data;
+          i, j, k, bufferId = null, keys, ks, numberOfPrimitives,
+          primitive = null;
 
       for (i = 0; i < numberOfSources; ++i) {
         bufferId = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-        data = m_geomData.source(i).data();
-        if (!(data instanceof Float32Array)) {
-          data = new Float32Array(data);
-        }
-        gl.bufferData(gl.ARRAY_BUFFER, data,
-                      m_dynamicDraw ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER,
+          new Float32Array(m_geomData.source(i).data()), gl.STATIC_DRAW);
 
         keys = m_geomData.source(i).keys();
         ks = [];
@@ -3599,9 +3593,16 @@ vgl.mapper = function(arg) {
       numberOfPrimitives = m_geomData.numberOfPrimitives();
       for (k = 0; k < numberOfPrimitives; ++k) {
         bufferId = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-        gl.bufferData(gl.ARRAY_BUFFER, m_geomData.primitive(k)
-            .indices(), gl.STATIC_DRAW);
+        primitive = m_geomData.primitive(k);
+        switch(primitive.primitiveType()) {
+          case gl.LINES:
+          case gl.LINE_STRIP:
+          case gl.TRIANGLE_STRIP:
+          default:
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufferId);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
+              m_geomData.primitive(k).indices(), gl.STATIC_DRAW);
+        }
         m_buffers[i++] = bufferId;
       }
 
@@ -3717,57 +3718,6 @@ vgl.mapper = function(arg) {
 
   ////////////////////////////////////////////////////////////////////////////
   /**
-   * Update the buffer used for a named source.
-   *
-   * @param {String} sourceName The name of the source to update.
-   * @param {Object[] or Float32Array} values The values to use for the source.
-   *    If not specified, use the source's own buffer.
-   */
-  ////////////////////////////////////////////////////////////////////////////
-  this.updateSourceBuffer = function (sourceName, values) {
-    var bufferIndex = -1;
-    for (var i = 0; i < m_geomData.numberOfSources(); i += 1) {
-      if (m_geomData.source(i).name() === sourceName) {
-        bufferIndex = i;
-        break;
-      }
-    }
-    if (bufferIndex < 0 || bufferIndex >= m_buffers.length) {
-      return false;
-    }
-    if (!values) {
-      values = m_geomData.source(i).dataToFloat32Array();
-    }
-    gl.bindBuffer(gl.ARRAY_BUFFER, m_buffers[bufferIndex]);
-    if (values instanceof Float32Array) {
-      gl.bufferSubData(gl.ARRAY_BUFFER, 0, values);
-    } else {
-      gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(values));
-    }
-    return true;
-  };
-
-  ////////////////////////////////////////////////////////////////////////////
-  /**
-   * Get the buffer used for a named source.  If the current buffer isn't a
-   * Float32Array, it is converted to one.  This array can then be modified
-   * directly, after which updateSourceBuffer can be called to update the
-   * GL array.
-   *
-   * @param {String} sourceName The name of the source to update.
-   * @returns {Float32Array} An array used for this source.
-   */
-  ////////////////////////////////////////////////////////////////////////////
-  this.getSourceBuffer = function (sourceName) {
-    var source = m_geomData.sourceByName(sourceName);
-    if (!source) {
-      return new Float32Array();
-    }
-    return source.dataToFloat32Array();
-  };
-
-  ////////////////////////////////////////////////////////////////////////////
-  /**
    * Render the mapper
    */
   ////////////////////////////////////////////////////////////////////////////
@@ -3798,20 +3748,14 @@ vgl.mapper = function(arg) {
     for (j = 0; j < noOfPrimitives; ++j) {
       primitive = m_geomData.primitive(j);
       switch(primitive.primitiveType()) {
-        case gl.POINTS:
-          gl.drawArrays (gl.POINTS, 0, primitive.numberOfIndices());
-          break;
         case gl.LINES:
-          gl.drawArrays (gl.LINES, 0, primitive.numberOfIndices());
-          break;
         case gl.LINE_STRIP:
-          gl.drawArrays (gl.LINE_STRIP, 0, primitive.numberOfIndices());
-          break;
-        case gl.TRIANGLES:
-          gl.drawArrays (gl.TRIANGLES, 0, primitive.numberOfIndices());
-          break;
         case gl.TRIANGLE_STRIP:
-          gl.drawArrays (gl.TRIANGLE_STRIP, 0, primitive.numberOfIndices());
+        default:
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m_buffers[bufferIndex++]);
+          primitive = m_geomData.primitive(j);//
+          gl.drawElements(primitive.primitiveType(), primitive.numberOfIndices(),
+                          primitive.indicesValueType(), 0);
           break;
       }
       gl.bindBuffer (gl.ARRAY_BUFFER, null);
@@ -9944,7 +9888,7 @@ vgl.utils.createGeometryMaterial = function() {
    var mat = new vgl.material(),
        prog = new vgl.shaderProgram(),
        pointSize = 5.0,
-       opacity = 0.5,
+       opacity = 1.0,
        vertexShader = vgl.utils.createVertexShader(gl),
        fragmentShader = vgl.utils.createFragmentShader(gl),
        posVertAttr = new vgl.vertexAttribute("vertexPosition"),
@@ -12489,7 +12433,11 @@ vgl.depthPeelRenderer = function() {
     // Or browser-appropriate prefix
     var depthTextureExt = gl.getExtension("WEBKIT_WEBGL_depth_texture");
     if(!depthTextureExt) {
-        console.log("depth textures are not supported");
+        depthTextureExt = gl.getExtension("WEBGL_depth_texture");
+
+        if(!depthTextureExt) {
+            console.log("Depth textures are not supported");
+        }
     }
 
     var floatTextureExt = gl.getExtension("OES_texture_float");
@@ -12508,7 +12456,6 @@ vgl.depthPeelRenderer = function() {
     }
 
     var ext = gl.getExtension("WEBGL_draw_buffers");
-
 
     //FBO initialization function
     // Generate 2 FBO
@@ -12534,7 +12481,7 @@ vgl.depthPeelRenderer = function() {
         gl.texImage2D(vgl.GL.TEXTURE_2D , 0, vgl.GL.DEPTH_COMPONENT,
                       WIDTH, HEIGHT, 0, vgl.GL.DEPTH_COMPONENT, vgl.GL.UNSIGNED_SHORT, null);
 
-        // Second initialize the colour attachment
+        // Second initialize the color attachment
         gl.bindTexture(vgl.GL.TEXTURE_2D,texID[i]);
         gl.texParameteri(vgl.GL.TEXTURE_2D , vgl.GL.TEXTURE_MAG_FILTER, vgl.GL.NEAREST);
         gl.texParameteri(vgl.GL.TEXTURE_2D , vgl.GL.TEXTURE_MIN_FILTER, vgl.GL.NEAREST);
@@ -12543,15 +12490,15 @@ vgl.depthPeelRenderer = function() {
         gl.texImage2D(vgl.GL.TEXTURE_2D , 0, vgl.GL.RGBA, WIDTH, HEIGHT, 0,
                       vgl.GL.RGBA, vgl.GL.FLOAT, null);
 
-        // Bind FBO and attach the depth and colour attachments
+        // Bind FBO and attach the depth and color attachments
         gl.bindFramebuffer(vgl.GL.FRAMEBUFFER, fbo[i]);
         gl.framebufferTexture2D(vgl.GL.FRAMEBUFFER, vgl.GL.DEPTH_ATTACHMENT,
                                 vgl.GL.TEXTURE_2D, depthTexID[i], 0);
-        gl.framebufferTexture2D(vgl.GL.FRAMEBUFFER, ext.COLOR_ATTACHMENT0_WEBGL,
+        gl.framebufferTexture2D(vgl.GL.FRAMEBUFFER, vgl.GL.COLOR_ATTACHMENT0,
                                 vgl.GL.TEXTURE_2D, texID[i], 0);
     }
 
-    // Now setup the colour attachment for colour blend FBO
+    // Now setup the color attachment for color blend FBO
     colorBlenderTexID = gl.createTexture();
     gl.bindTexture(vgl.GL.TEXTURE_2D, colorBlenderTexID);
     gl.texParameteri(vgl.GL.TEXTURE_2D, vgl.GL.TEXTURE_WRAP_S, vgl.GL.CLAMP_TO_EDGE);
@@ -12561,15 +12508,16 @@ vgl.depthPeelRenderer = function() {
     gl.texImage2D(vgl.GL.TEXTURE_2D, 0, vgl.GL.RGBA, WIDTH, HEIGHT,
                   0, vgl.GL.RGBA, vgl.GL.FLOAT, null);
 
-    // Generate the colour blend FBO ID
+    // Generate the color blend FBO ID
     colorBlenderFBOID = gl.createFramebuffer();
     gl.bindFramebuffer(vgl.GL.FRAMEBUFFER, colorBlenderFBOID);
 
     // Set the depth attachment of previous FBO as depth attachment for this FBO
     gl.framebufferTexture2D(vgl.GL.FRAMEBUFFER, vgl.GL.DEPTH_ATTACHMENT,
                             vgl.GL.TEXTURE_2D, depthTexID[0], 0);
-    // Set the colour blender texture as the FBO colour attachment
-    gl.framebufferTexture2D(vgl.GL.FRAMEBUFFER, ext.COLOR_ATTACHMENT0_WEBGL,
+
+    // Set the color blender texture as the FBO color attachment
+    gl.framebufferTexture2D(vgl.GL.FRAMEBUFFER, vgl.GL.COLOR_ATTACHMENT0,
                             vgl.GL.TEXTURE_2D, colorBlenderTexID, 0);
 
     // Check the FBO completeness status
@@ -12651,11 +12599,11 @@ vgl.depthPeelRenderer = function() {
     fiwidth.set(m_this.width());
     fiheight.set(m_this.height());
 
-    // Clear colour and depth buffer
+    // Clear color and depth buffer
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(vgl.GL.OLOR_BUFFER_BIT | vgl.GL.DEPTH_BUFFER_BIT);
 
-    // Bind the colour blending FBO
+    // Bind the color blending FBO
     gl.bindFramebuffer(vgl.GL.FRAMEBUFFER, colorBlenderFBOID);
 
     // 1. In the first pass, we render normally with depth test enabled to get the nearest surface
@@ -12686,16 +12634,16 @@ vgl.depthPeelRenderer = function() {
         // Bind the depth texture from the previous step
         gl.bindTexture(vgl.GL.TEXTURE_2D, depthTexID[prevId]);
 
-        // Set clear colour to black
+        // Set clear color to black
         gl.clearColor(0., 0., 0., 0.0);
 
-        // Clear the colour and depth buffers
+        // Clear the color and depth buffers
         gl.clear(vgl.GL.COLOR_BUFFER_BIT | vgl.GL.DEPTH_BUFFER_BIT);
 
         // Render scene with the front to back peeling shader
         drawScene(renderState, actors, fpMaterial);
 
-        // Bind the colour blender FBO
+        // Bind the color blender FBO
         gl.bindFramebuffer(vgl.GL.FRAMEBUFFER, colorBlenderFBOID);
 
         // Enable blending but disable depth testing
@@ -12726,7 +12674,7 @@ vgl.depthPeelRenderer = function() {
     gl.disable(vgl.GL.DEPTH_TEST);
     gl.disable(vgl.GL.BLEND);
 
-    // Bind the colour blender texture
+    // Bind the color blender texture
     gl.bindTexture(vgl.GL.TEXTURE_2D, colorBlenderTexID);
 
     fibackgroundColor.set(m_this.m_camera.clearColor());
