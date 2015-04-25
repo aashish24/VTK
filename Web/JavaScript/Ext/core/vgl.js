@@ -9605,7 +9605,7 @@ vgl.utils.createFragmentShader = function(context) {
   var fragmentShaderSource = [ 'varying mediump vec3 iVertexColor;',
                               'uniform mediump float opacity;',
                               'void main(void) {',
-                              'gl_FragColor = vec4(iVertexColor * opacity, opacity);',
+                              'gl_FragColor = vec4(iVertexColor, opacity);',
                               '}' ].join('\n'),
       shader = new vgl.shader(vgl.GL.FRAGMENT_SHADER);
 
@@ -12329,7 +12329,7 @@ vgl.depthPeelRenderer = function() {
 
   function initShaders(renderState, WIDTH, HEIGHT) {
     var fpmv, fpproj, fpvertex, fpcolor, fpdepthTex, fpnormal, fpnr, fpblend,
-        blmv, blproj, blvertex, bltempTex,
+        blmv, blproj, blvertex, blColorSamp, blPrevDepthSamp, blCurrDepthSamp,
         fimv, fiproj, fivertex, fitempTex;
 
     // Load the front to back peeling shader
@@ -12379,16 +12379,25 @@ vgl.depthPeelRenderer = function() {
     blendShader = new vgl.shaderProgram();
     blendShader.loadShader(vgl.GL.VERTEX_SHADER,   "blend.vert");
     blendShader.loadShader(vgl.GL.FRAGMENT_SHADER, "blend.frag");
-    bltempTex = new vgl.uniform(vgl.GL.INT, "tempTexture");
+    blColorSamp = new vgl.uniform(vgl.GL.INT, "currColorTexture");
+    blPrevDepthSamp = new vgl.uniform(vgl.GL.INT, "prevDepthTexture");
+    blCurrDepthSamp = new vgl.uniform(vgl.GL.INT, "currDepthTexture");
+
     blwidth = new vgl.floatUniform("width");
     blheight = new vgl.floatUniform("height");
-    bltempTex.set(0);
+    blColorSamp.set(0);
+    blPrevDepthSamp.set(1);
+    blCurrDepthSamp.set(2);
+
     blvertex = new vgl.vertexAttribute("vertexPosition");
 
-    blendShader.addUniform(bltempTex);
+    blendShader.addUniform(blColorSamp);
+    blendShader.addUniform(blPrevDepthSamp);
+    blendShader.addUniform(blPrevDepthSamp);
     blendShader.addUniform(blwidth);
     blendShader.addUniform(blheight);
-    blendShader.addVertexAttribute(blvertex, vgl.vertexAttributeKeys.Position);
+    blendShader.addVertexAttribute(blvertex,
+      vgl.vertexAttributeKeys.Position);
 
     // Compile and link the shader
     blendShader.compileAndLink();
@@ -12396,9 +12405,9 @@ vgl.depthPeelRenderer = function() {
 
     //     //add attributes and uniforms
     //     blendShader.AddAttribute("vVertex");
-    //     blendShader.AddUniform("tempTexture");
+    //     blendShader.AddUniform("currColorTexture");
     //     //pass constant uniforms at initialization
-    //     glUniform1i(blendShader("tempTexture"), 0);
+    //     glUniform1i(blendShader("currColorTexture"), 0);
     // blendShader.UnUse();
 
     //Load the final shader
@@ -12627,7 +12636,7 @@ vgl.depthPeelRenderer = function() {
         // Bind the current FBO
         gl.bindFramebuffer(vgl.GL.FRAMEBUFFER, fbo[currId]);
 
-        // Disbale blending and depth testing
+        // Disbale blending and enable depth testing
         gl.disable(vgl.GL.BLEND);
         gl.enable(vgl.GL.DEPTH_TEST);
 
@@ -12658,9 +12667,18 @@ vgl.depthPeelRenderer = function() {
                              vgl.GL.ZERO, vgl.GL.ONE_MINUS_SRC_ALPHA);
 
         // Bind the result from the previous iteration as texture
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(vgl.GL.TEXTURE_2D, texID[currId]);
 
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(vgl.GL.TEXTURE_2D, depthTexID[prevId]);
+
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(vgl.GL.TEXTURE_2D, depthTexID[currId]);
+
         drawFullScreenQuad(renderState, blMaterial);
+
+        gl.activeTexture(gl.TEXTURE0);
 
         // Disable blending
         gl.disable(vgl.GL.BLEND);
