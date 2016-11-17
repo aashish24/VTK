@@ -254,6 +254,8 @@ vtkScalarsToColors* vtkPolyDataMapper2D::GetLookupTable()
 //----------------------------------------------------------------------------
 void vtkPolyDataMapper2D::CreateDefaultLookupTable()
 {
+  return;
+
   if (this->LookupTable)
   {
     this->LookupTable->UnRegister(this);
